@@ -76,6 +76,31 @@ function saveData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
 }
 
+// --- Automatic snapshots: a silent local safety net ---
+// Once per day, before any of today's changes, the previous state is copied
+// aside. The last 7 copies are kept and can be restored from Backup & restore.
+const SNAPSHOT_PREFIX = 'acts_of_life_snap_';
+
+function snapshotKeys() {
+    return Object.keys(localStorage).filter(k => k.startsWith(SNAPSHOT_PREFIX)).sort();
+}
+
+function takeDailySnapshot() {
+    try {
+        const hasData = appData.items.length > 0 || appData.facets.length > 0 ||
+            Object.keys(appData.history).length > 0;
+        if (!hasData) return;
+        const key = SNAPSHOT_PREFIX + todayStr();
+        if (!localStorage.getItem(key)) {
+            localStorage.setItem(key, JSON.stringify(appData));
+        }
+        const keys = snapshotKeys();
+        while (keys.length > 7) localStorage.removeItem(keys.shift());
+    } catch (e) {
+        // Storage full or unavailable — snapshots are best-effort
+    }
+}
+
 // --- Small helpers ---
 function todayStr() { return new Date().toLocaleDateString('en-CA'); }
 
@@ -937,7 +962,7 @@ function renderLife(container) {
         loopCard.style.cssText = 'display:flex;gap:18px;align-items:center;padding:13px 16px;border-radius:20px;border:1px solid var(--space-edge)';
         loopCard.innerHTML = `
       <svg width="62" height="62" viewBox="0 0 64 64" style="flex:none;animation:spinSlow 40s linear infinite"><circle cx="32" cy="32" r="24" fill="none" stroke="var(--loop-bright)" stroke-width="2" opacity="0.5"></circle><circle cx="32" cy="8" r="3.5" fill="var(--loop-bright)"></circle><circle cx="56" cy="32" r="3.5" fill="var(--loop-bright)"></circle><circle cx="32" cy="56" r="3.5" fill="none" stroke="var(--loop-bright)" stroke-width="1.5"></circle><circle cx="8" cy="32" r="3.5" fill="none" stroke="var(--loop-bright)" stroke-width="1.5"></circle></svg>
-      <div style="font:12px/1.6 var(--font-body);color:var(--space-ink-55)"><b style="color:rgba(245,234,216,.8)">${esc(lf.title)}</b> · the loop, turning daily<br><span style="font:10.5px var(--font-meta);color:rgba(245,234,216,.45)">${esc(rituals.slice(0, 4).map(r => r.title).join(' · '))}</span><br>${best > 0 ? best + '-day trending stream' : 'begin the turning'}</div>`;
+      <div style="font:12px/1.6 var(--font-body);color:var(--space-ink-55)"><b style="color:rgba(245,234,216,.8)">${esc(lf.title)}</b> · the loop, turning daily<br><span style="font:10.5px var(--font-meta);color:rgba(245,234,216,.45)">${esc(rituals.slice(0, 4).map(r => r.title).join(' · '))}</span><br>${best > 0 ? best + '-day tending streak' : 'begin the turning'}</div>`;
         pad.appendChild(loopCard);
         break;
     }
@@ -1571,8 +1596,25 @@ function openGoalEditor(defaults = {}, goal = null) {
 
 // --- Backup & restore ---
 function openDataModal() {
+    const snaps = snapshotKeys().reverse();
+    const snapRows = snaps.map(k => {
+        const date = k.slice(SNAPSHOT_PREFIX.length);
+        let count = '';
+        try {
+            const d = JSON.parse(localStorage.getItem(k));
+            count = ` · ${(d.items || []).length} acts`;
+        } catch (e) { /* unreadable snapshot */ }
+        const dObj = new Date(date);
+        const label = dObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short' }) + ' ' + dObj.getDate();
+        return `<div class="snap-row" data-key="${k}" style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:14px;background:rgba(32,30,29,.04);cursor:pointer">
+      <span style="font:600 12px var(--font-body);color:var(--ink-soft);flex:1">${label}${count}</span>
+      <span style="font:10px var(--font-meta);color:var(--ember-hover)">restore →</span></div>`;
+    }).join('');
+
     const html = `
-    <p style="font:12.5px/1.55 var(--font-body);color:var(--ink-soft)">Your data lives only on this device — nothing is sent anywhere. Export a backup file regularly; import it to restore or move devices.</p>
+    <p style="font:12.5px/1.55 var(--font-body);color:var(--ink-soft)">Your data lives only on this device — nothing is sent anywhere. The app quietly keeps a daily safety copy of the last 7 days; tap one below to restore it. Export a file to move devices.</p>
+    ${snaps.length ? `<div><div class="kicker" style="color:rgba(32,30,29,.45);margin-bottom:8px">Daily safety copies</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${snapRows}</div></div>` : ''}
     <button id="btn-export" class="btn-secondary">Export backup (JSON)</button>
     <label class="btn-secondary" style="text-align:center;cursor:pointer;font:600 13px var(--font-body);letter-spacing:0;text-transform:none;color:var(--ink-soft)">Import backup…
       <input id="inp-import" type="file" accept=".json,application/json" style="display:none">
@@ -1580,6 +1622,24 @@ function openDataModal() {
   `;
     const modal = renderModal('Backup & restore', html, () => false);
     modal.querySelector('.modal-footer').style.display = 'none';
+
+    modal.querySelectorAll('.snap-row').forEach(row => {
+        row.onclick = () => {
+            const key = row.dataset.key;
+            const date = key.slice(SNAPSHOT_PREFIX.length);
+            if (!confirm(`Restore the safety copy from ${date}? Changes made since then will be replaced.`)) return;
+            try {
+                appData = JSON.parse(localStorage.getItem(key));
+            } catch (e) {
+                alert('This safety copy could not be read.');
+                return;
+            }
+            loadDataMigrateInPlace();
+            saveData();
+            modal.remove();
+            goHome();
+        };
+    });
 
     modal.querySelector('#btn-export').onclick = () => {
         const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
@@ -1810,7 +1870,12 @@ function init() {
     if (navigator.storage && navigator.storage.persist) {
         navigator.storage.persist();
     }
+    // Service worker requires http(s); skip silently when opened as a file
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+        navigator.serviceWorker.register('sw.js');
+    }
     loadData();
+    takeDailySnapshot();
     if (!appData.meta.onboarded && appData.facets.length === 0) {
         renderOnboarding();
     } else {
