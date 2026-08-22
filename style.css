@@ -501,6 +501,105 @@ details.collapsed-group[open] summary {
   color: white;
 }
 
+/* Milestone editor rows */
+.ms-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ms-row input[type="checkbox"] {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.ms-row .ms-title {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  font-size: 0.9rem;
+}
+
+.ms-row .ms-date {
+  width: 130px;
+  flex-shrink: 0;
+  padding: 8px 6px;
+  font-size: 0.8rem;
+}
+
+.ms-row .ms-up,
+.ms-row .ms-del {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.ms-row .ms-up:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Phase headers in goal view */
+.phase-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 16px 8px;
+}
+
+.phase-check {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phase-header.done .phase-check {
+  background: var(--color-text-main);
+  border-color: var(--color-text-main);
+  color: white;
+}
+
+.phase-header.current .phase-check {
+  border-color: var(--color-text-main);
+  color: var(--color-text-main);
+}
+
+.phase-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.phase-header.done .phase-title {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.phase-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: var(--color-text-main);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
 /* Overdue quick reschedule */
 .btn-move-today {
   padding: 6px 10px;

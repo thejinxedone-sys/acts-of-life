@@ -120,6 +120,22 @@ function isGoalCompleted(goalId) {
     return !!goal && goal.status === 'completed';
 }
 
+// Line-mode areas (Work, Learning) hold ongoing "Streams"; elsewhere "Goal" reads better
+function goalNoun(facetId) {
+    const facet = appData.facets.find(f => f.id === facetId);
+    const mode = facet ? appData.modes.find(m => m.id === facet.modeId) : null;
+    return (mode && mode.type === 'line') ? 'Stream' : 'Goal';
+}
+
+function toggleMilestone(goalId, msId) {
+    const goal = appData.goals.find(g => g.id === goalId);
+    const milestone = goal && (goal.milestones || []).find(m => m.id === msId);
+    if (!milestone) return;
+    milestone.done = !milestone.done;
+    saveData();
+    render();
+}
+
 // Count consecutive due-days (ending today) on which this ritual was completed.
 // An incomplete today doesn't break the streak — it just doesn't count yet.
 function computeStreak(item) {
@@ -598,7 +614,7 @@ function renderFacetView(container, facetId) {
 
     const addBtn = document.createElement('button');
     addBtn.className = 'btn-text';
-    addBtn.textContent = '+ Add Goal';
+    addBtn.textContent = `+ Add ${goalNoun(facetId)}`;
     addBtn.onclick = () => openGoalEditor({ facetId: facet.id });
 
     container.appendChild(list);
@@ -631,21 +647,12 @@ function renderGoalView(container, goalId) {
 
     const items = appData.items.filter(i => i.goalId === goalId && i.status !== 'archived');
 
-    // Segment items
-    const rituals = items.filter(i => i.type === 'ritual');
-    const tasks = items.filter(i => i.type === 'task');
-    const unscheduled = tasks.filter(t => !t.scheduled_date);
-    const scheduled = tasks.filter(t => t.scheduled_date).sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
-
-    // Helper to render section
-    const renderSection = (title, itemList) => {
-        if (itemList.length === 0) return '';
-        const itemsHtml = itemList.map(item => {
-            const meta = item.type === 'ritual'
-                ? `↻ ${item.recurrence} `
-                : (item.scheduled_date ? `📅 ${item.scheduled_date} ` : 'Unscheduled');
-
-            return `
+    // Row markup shared by phase groups and the classic sections
+    const itemRowHtml = (item) => {
+        const meta = item.type === 'ritual'
+            ? `↻ ${item.recurrence}`
+            : (item.scheduled_date ? `📅 ${item.scheduled_date}` : 'Unscheduled');
+        return `
         <div class="list-item" onclick="openItemEditorById('${item.id}')">
            <div style="flex:1">
              <div>${item.title}</div>
@@ -653,18 +660,51 @@ function renderGoalView(container, goalId) {
            </div>
            <div style="font-size:0.8rem; color:#aaa">✎</div>
         </div>`;
-        }).join('');
-
-        return `<h3 style="padding:16px 16px 8px; font-size:0.9rem; color:#666; text-transform:uppercase; letter-spacing:1px">${title}</h3>${itemsHtml}`;
     };
 
-    let sectionsHtml =
-        renderSection('Rituals', rituals) +
-        renderSection('Scheduled Tasks', scheduled) +
-        renderSection('Unscheduled / Someday', unscheduled);
+    const sectionHeading = (title) =>
+        `<h3 style="padding:16px 16px 8px; font-size:0.9rem; color:#666; text-transform:uppercase; letter-spacing:1px">${title}</h3>`;
 
-    if (items.length === 0) {
-        sectionsHtml = '<p class="empty-state">No items yet. Add one +</p>';
+    const milestones = goal.milestones || [];
+    let sectionsHtml = '';
+
+    if (milestones.length > 0) {
+        // Phase view: group items under their milestone; first undone phase is "current"
+        const currentId = (milestones.find(m => !m.done) || {}).id;
+        milestones.forEach((m, idx) => {
+            const phaseItems = items.filter(i => i.milestoneId === m.id);
+            const isCurrent = m.id === currentId;
+            sectionsHtml += `
+        <div class="phase-header${m.done ? ' done' : ''}${isCurrent ? ' current' : ''}">
+          <button class="phase-check" onclick="toggleMilestone('${goal.id}','${m.id}')" title="${m.done ? 'Reopen phase' : 'Mark phase done'}">${m.done ? '✓' : idx + 1}</button>
+          <span class="phase-title">${m.title}</span>
+          ${isCurrent ? '<span class="phase-badge">current</span>' : ''}
+          ${m.target_date ? `<span class="item-meta">${m.target_date}</span>` : ''}
+        </div>
+        ${phaseItems.length ? phaseItems.map(itemRowHtml).join('') : '<div class="item-meta" style="padding:2px 16px 10px">No items in this phase.</div>'}`;
+        });
+        const loose = items.filter(i => !i.milestoneId || !milestones.some(m => m.id === i.milestoneId));
+        if (loose.length > 0) {
+            sectionsHtml += sectionHeading('Other Items') + loose.map(itemRowHtml).join('');
+        }
+    } else {
+        // Classic view: segment by kind and schedule
+        const rituals = items.filter(i => i.type === 'ritual');
+        const tasks = items.filter(i => i.type === 'task');
+        const unscheduled = tasks.filter(t => !t.scheduled_date);
+        const scheduled = tasks.filter(t => t.scheduled_date).sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
+
+        const renderSection = (title, itemList) =>
+            itemList.length === 0 ? '' : sectionHeading(title) + itemList.map(itemRowHtml).join('');
+
+        sectionsHtml =
+            renderSection('Rituals', rituals) +
+            renderSection('Scheduled Tasks', scheduled) +
+            renderSection('Unscheduled / Someday', unscheduled);
+
+        if (items.length === 0) {
+            sectionsHtml = '<p class="empty-state">No items yet. Add one +</p>';
+        }
     }
 
     const archived = appData.items.filter(i => i.goalId === goalId && i.status === 'archived');
@@ -936,6 +976,9 @@ function openItemEditor(item = null, prefill = {}) {
     const html = `
     <label>Title <input id="inp-title" type="text" value="${titleVal}" autofocus></label>
     <label>Goal <select id="inp-goal">${goalOpts}</select></label>
+    <div id="ms-group" style="display:none">
+      <label>Phase (Milestone) <select id="inp-ms"></select></label>
+    </div>
 
     <label>Type</label>
     <div style="display:flex; gap:8px;">
@@ -976,6 +1019,7 @@ function openItemEditor(item = null, prefill = {}) {
             title,
             type,
             goalId,
+            milestoneId: m.querySelector('#inp-ms').value || null,
             status: isEditing ? item.status : 'active',
             recurrence: type === 'ritual' ? m.querySelector('#inp-recur').value : 'none',
             scheduled_date: type === 'task' ? (m.querySelector('#inp-date').value || null) : null,
@@ -1004,6 +1048,25 @@ function openItemEditor(item = null, prefill = {}) {
     modal.querySelectorAll('input[name="inp-type"]').forEach(input => input.addEventListener('change', syncTypeUI));
     syncTypeUI();
 
+    // Phase selector follows the chosen goal's milestones
+    const msGroup = modal.querySelector('#ms-group');
+    const msSelect = modal.querySelector('#inp-ms');
+    const syncMilestoneUI = () => {
+        const g = appData.goals.find(x => x.id === modal.querySelector('#inp-goal').value);
+        const list = (g && g.milestones) || [];
+        if (list.length === 0) {
+            msGroup.style.display = 'none';
+            msSelect.innerHTML = '<option value=""></option>';
+            return;
+        }
+        const cur = (isEditing && item.milestoneId) || '';
+        msSelect.innerHTML = '<option value="">— None —</option>' +
+            list.map(mst => `<option value="${mst.id}" ${mst.id === cur ? 'selected' : ''}>${mst.title}</option>`).join('');
+        msGroup.style.display = 'block';
+    };
+    modal.querySelector('#inp-goal').addEventListener('change', syncMilestoneUI);
+    syncMilestoneUI();
+
     if (isEditing) {
         modal.querySelector('#btn-archive').onclick = () => {
             item.status = item.status === 'archived' ? 'active' : 'archived';
@@ -1025,26 +1088,38 @@ function openItemEditor(item = null, prefill = {}) {
 function openGoalEditor(defaults = {}, goal = null) {
     const isEditing = !!goal;
     const facetIdVal = isEditing ? goal.facetId : (defaults.facetId || '');
+    const noun = goalNoun(facetIdVal);
     const facetOpts = appData.facets.map(f => `<option value="${f.id}" ${f.id === facetIdVal ? 'selected' : ''}>${f.title}</option>`).join('');
     const isCompleted = isEditing && goal.status === 'completed';
 
+    // Working copy of milestones — committed to the goal only on Save
+    const ms = (isEditing ? (goal.milestones || []) : []).map(m => ({ ...m }));
+
     const html = `
-    <label>Goal Title <input id="inp-g-title" type="text" value="${isEditing ? goal.title : ''}" autofocus></label>
+    <label>${noun} Title <input id="inp-g-title" type="text" value="${isEditing ? goal.title : ''}" autofocus></label>
     <label>Area (Facet) <select id="inp-g-facet">${facetOpts}</select></label>
-    <label>Deadline <input id="inp-g-deadline" type="date" value="${isEditing ? (goal.deadline || '') : ''}"></label>
+    <div style="display:flex; gap:12px">
+      <label style="flex:1">Start <input id="inp-g-start" type="date" value="${isEditing ? (goal.start_date || '') : ''}"></label>
+      <label style="flex:1">Deadline <input id="inp-g-deadline" type="date" value="${isEditing ? (goal.deadline || '') : ''}"></label>
+    </div>
+    <label>Milestones (phases)</label>
+    <div id="ms-list"></div>
+    <button type="button" id="btn-ms-add" class="btn-text" style="padding:4px 0; text-align:left">+ Add milestone</button>
     ${isEditing ? `
-      <button id="btn-g-complete" class="btn-secondary">${isCompleted ? 'Reactivate Goal' : 'Mark Complete 🏁'}</button>
-      <button id="btn-g-delete" class="btn-secondary" style="color:#c0392b">Delete Goal</button>` : ''}
+      <button id="btn-g-complete" class="btn-secondary">${isCompleted ? `Reactivate ${noun}` : 'Mark Complete 🏁'}</button>
+      <button id="btn-g-delete" class="btn-secondary" style="color:#c0392b">Delete ${noun}</button>` : ''}
   `;
 
-    const modal = renderModal(isEditing ? 'Edit Goal' : 'New Goal', html, (m) => {
+    const modal = renderModal(isEditing ? `Edit ${noun}` : `New ${noun}`, html, (m) => {
         const title = m.querySelector('#inp-g-title').value.trim();
         if (!title) return false;
 
         const data = {
             title,
             facetId: m.querySelector('#inp-g-facet').value,
-            deadline: m.querySelector('#inp-g-deadline').value
+            start_date: m.querySelector('#inp-g-start').value,
+            deadline: m.querySelector('#inp-g-deadline').value,
+            milestones: ms.filter(x => x.title.trim())
         };
         if (isEditing) {
             Object.assign(goal, data);
@@ -1053,6 +1128,41 @@ function openGoalEditor(defaults = {}, goal = null) {
         }
         return true;
     });
+
+    const msList = modal.querySelector('#ms-list');
+    const renderMsRows = () => {
+        msList.innerHTML = '';
+        if (ms.length === 0) {
+            msList.innerHTML = '<div class="item-meta" style="padding:2px 0 6px">Optional phases, e.g. Build → Test → Launch.</div>';
+            return;
+        }
+        ms.forEach((mst, idx) => {
+            const row = document.createElement('div');
+            row.className = 'ms-row';
+            row.innerHTML = `
+        <input type="checkbox" class="ms-done" ${mst.done ? 'checked' : ''} title="Done">
+        <input type="text" class="ms-title" placeholder="e.g. Build" value="${mst.title}">
+        <input type="date" class="ms-date" value="${mst.target_date || ''}" title="Target date">
+        <button type="button" class="ms-up" title="Move up" ${idx === 0 ? 'disabled' : ''}>↑</button>
+        <button type="button" class="ms-del" title="Remove">×</button>`;
+            row.querySelector('.ms-done').onchange = (e) => { mst.done = e.target.checked; };
+            row.querySelector('.ms-title').oninput = (e) => { mst.title = e.target.value; };
+            row.querySelector('.ms-date').onchange = (e) => { mst.target_date = e.target.value; };
+            row.querySelector('.ms-up').onclick = () => {
+                [ms[idx - 1], ms[idx]] = [ms[idx], ms[idx - 1]];
+                renderMsRows();
+            };
+            row.querySelector('.ms-del').onclick = () => { ms.splice(idx, 1); renderMsRows(); };
+            msList.appendChild(row);
+        });
+    };
+    renderMsRows();
+    modal.querySelector('#btn-ms-add').onclick = () => {
+        ms.push({ id: 'ms_' + Date.now() + Math.random().toString(36).substr(2, 3), title: '', target_date: '', done: false });
+        renderMsRows();
+        const titles = msList.querySelectorAll('.ms-title');
+        titles[titles.length - 1].focus();
+    };
 
     if (isEditing) {
         modal.querySelector('#btn-g-complete').onclick = () => {
