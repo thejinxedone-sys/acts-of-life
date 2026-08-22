@@ -465,3 +465,52 @@ details.collapsed-group[open] summary {
   background: #f0f0f0;
   transform: scale(0.45);
 }
+
+.review-dots.month {
+  flex-wrap: wrap;
+  max-width: 170px;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.review-dots.month .dot {
+  width: 10px;
+  height: 10px;
+}
+
+.review-toggle {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.review-toggle button {
+  padding: 6px 16px;
+  border-radius: 16px;
+  border: 1px solid #ddd;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-toggle button.active {
+  background: var(--color-text-main);
+  border-color: var(--color-text-main);
+  color: white;
+}
+
+/* Overdue quick reschedule */
+.btn-move-today {
+  padding: 6px 10px;
+  border-radius: 14px;
+  border: 1px solid #ddd;
+  background: none;
+  color: var(--color-text-main);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

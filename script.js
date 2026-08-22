@@ -68,7 +68,12 @@ function openGoalEditorById(goalId) {
 }
 
 function goToReview() {
-    currentView = { level: 'review', contextId: null };
+    currentView = { level: 'review', contextId: 'week' };
+    render();
+}
+
+function setReviewRange(range) {
+    currentView = { level: 'review', contextId: range };
     render();
 }
 
@@ -274,6 +279,25 @@ function renderDailyView(container = document.getElementById('app')) {
         listDiv.appendChild(det);
     }
 
+    // Archived items without a goal have no goal view to live in — surface them
+    // here so they stay reachable (and unarchivable)
+    const looseArchived = appData.items.filter(i =>
+        i.status === 'archived' && !appData.goals.some(g => g.id === i.goalId));
+    if (looseArchived.length > 0) {
+        const det = document.createElement('details');
+        det.className = 'collapsed-group';
+        det.innerHTML = `<summary>Archived (${looseArchived.length})</summary>`;
+        looseArchived.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'item-card';
+            row.style.opacity = '0.6';
+            row.innerHTML = `<div class="content"><div class="item-title">${item.title}</div></div>`;
+            row.onclick = () => openItemEditor(item);
+            det.appendChild(row);
+        });
+        listDiv.appendChild(det);
+    }
+
     container.appendChild(listDiv);
 
     // Quick Add FAB
@@ -325,6 +349,20 @@ function renderItemCard(item, dateStr) {
     div.appendChild(checkbox);
     div.appendChild(content);
 
+    if (item.type === 'task' && item.scheduled_date && item.scheduled_date < todayStr) {
+        const moveBtn = document.createElement('button');
+        moveBtn.className = 'btn-move-today';
+        moveBtn.textContent = '→ Today';
+        moveBtn.title = 'Reschedule to today';
+        moveBtn.onclick = (e) => {
+            e.stopPropagation();
+            item.scheduled_date = todayStr;
+            saveData();
+            render();
+        };
+        div.appendChild(moveBtn);
+    }
+
     return div;
 }
 
@@ -338,17 +376,24 @@ function renderFAB(container) {
 
 // --- View: Weekly Review ---
 function renderReviewView(container) {
+    const range = currentView.contextId === 'month' ? 'month' : 'week';
+    const numDays = range === 'month' ? 30 : 7;
+
     container.innerHTML = `
     <header class="view-header">
       <button onclick="goHome()">← Today</button>
-      <h1>Weekly Review</h1>
-      <div class="item-meta">Ritual consistency, last 7 days</div>
+      <h1>${range === 'month' ? 'Monthly' : 'Weekly'} Review</h1>
+      <div class="item-meta">Ritual consistency, last ${numDays} days</div>
+      <div class="review-toggle">
+        <button class="${range === 'week' ? 'active' : ''}" onclick="setReviewRange('week')">Week</button>
+        <button class="${range === 'month' ? 'active' : ''}" onclick="setReviewRange('month')">Month</button>
+      </div>
     </header>
   `;
 
-    // Last 7 days, oldest first
+    // Last N days, oldest first
     const days = [];
-    for (let i = 6; i >= 0; i--) {
+    for (let i = numDays - 1; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         days.push(d);
@@ -390,7 +435,8 @@ function renderReviewView(container) {
                 if (isDone) done++;
                 const cls = isDue ? (isDone ? 'dot done' : 'dot missed') : 'dot off';
                 const style = isDone ? `style="background:${(facet && facet.color) || '#4caf50'}"` : '';
-                return `<span class="review-day"><span class="${cls}" ${style}></span><small>${dayLabels[idx]}</small></span>`;
+                const label = range === 'week' ? `<small>${dayLabels[idx]}</small>` : '';
+                return `<span class="review-day"><span class="${cls}" ${style}></span>${label}</span>`;
             }).join('');
 
             const pct = due > 0 ? Math.round(done / due * 100) : null;
@@ -401,7 +447,7 @@ function renderReviewView(container) {
           <div>${item.title}</div>
           <div class="item-meta">${pct === null ? 'Not due this week' : `${done}/${due} days • ${pct}%`}</div>
         </div>
-        <div class="review-dots">${dots}</div>`;
+        <div class="review-dots${range === 'month' ? ' month' : ''}">${dots}</div>`;
             section.appendChild(row);
         });
 
@@ -612,14 +658,32 @@ function renderGoalView(container, goalId) {
         return `<h3 style="padding:16px 16px 8px; font-size:0.9rem; color:#666; text-transform:uppercase; letter-spacing:1px">${title}</h3>${itemsHtml}`;
     };
 
-    listContainer.innerHTML =
+    let sectionsHtml =
         renderSection('Rituals', rituals) +
         renderSection('Scheduled Tasks', scheduled) +
         renderSection('Unscheduled / Someday', unscheduled);
 
     if (items.length === 0) {
-        listContainer.innerHTML = '<p class="empty-state">No items yet. Add one +</p>';
+        sectionsHtml = '<p class="empty-state">No items yet. Add one +</p>';
     }
+
+    const archived = appData.items.filter(i => i.goalId === goalId && i.status === 'archived');
+    if (archived.length > 0) {
+        sectionsHtml += `
+        <details class="collapsed-group" style="padding:0 16px">
+          <summary>Archived (${archived.length})</summary>
+          ${archived.map(item => `
+          <div class="list-item" style="opacity:0.6" onclick="openItemEditorById('${item.id}')">
+             <div style="flex:1">
+               <div>${item.title}</div>
+               <div class="item-meta">${item.type === 'ritual' ? '↻ ' + item.recurrence : (item.scheduled_date ? '📅 ' + item.scheduled_date : 'Unscheduled')}</div>
+             </div>
+             <div style="font-size:0.8rem; color:#aaa">✎</div>
+          </div>`).join('')}
+        </details>`;
+    }
+
+    listContainer.innerHTML = sectionsHtml;
 
     const addBtn = document.createElement('button');
     addBtn.className = 'fab';
@@ -895,7 +959,9 @@ function openItemEditor(item = null, prefill = {}) {
       <label>Schedule Date <input id="inp-date" type="date" value="${dateVal}"></label>
       <small style="color:#888; margin-top:4px; display:block">Leave empty to save for Someday</small>
     </div>
-    ${isEditing ? '<button id="btn-delete" class="btn-secondary" style="color:#c0392b">Delete Item</button>' : ''}
+    ${isEditing ? `
+    <button id="btn-archive" class="btn-secondary">${item.status === 'archived' ? 'Unarchive Item' : 'Archive Item'}</button>
+    <button id="btn-delete" class="btn-secondary" style="color:#c0392b">Delete Item</button>` : ''}
   `;
 
     const modal = renderModal(isEditing ? 'Edit Item' : 'New Item', html, (m) => {
@@ -939,6 +1005,12 @@ function openItemEditor(item = null, prefill = {}) {
     syncTypeUI();
 
     if (isEditing) {
+        modal.querySelector('#btn-archive').onclick = () => {
+            item.status = item.status === 'archived' ? 'active' : 'archived';
+            modal.remove();
+            saveData();
+            render();
+        };
         modal.querySelector('#btn-delete').onclick = () => {
             if (confirm(`Delete "${item.title}"? This cannot be undone.`)) {
                 appData.items = appData.items.filter(i => i.id !== item.id);
