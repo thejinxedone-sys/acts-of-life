@@ -1,0 +1,89 @@
+/* ═══════════════════════════════════════════════════════════════
+   ACTS OF LIFE — design tokens
+   A telescope for a life: one world, five zoom levels.
+   Built on the Organic system (cream ground, terracotta ember,
+   Caprasimo display) with a desaturated mode triad in OKLCH.
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Grounds — the day side (Item / Stream zoom levels) ── */
+  --ground:          #f5ead8;   /* app background */
+  --ground-raised:   #f9f4ed;   /* stream screen, sheets */
+  --surface-card:    rgba(255, 252, 246, .85);  /* list cards */
+  --surface-sunken:  #ebddc5;   /* evening pill, ack. card */
+  --ink:             #201e1d;
+  --ink-soft:        #645c50;   /* secondary text */
+  --ink-muted:       #82796a;   /* meta / mono lines */
+  --ink-faint:       #a19786;   /* taglines, hints */
+  --edge:            rgba(32, 30, 29, .08);   /* card borders */
+  --edge-strong:     rgba(32, 30, 29, .14);   /* ghost buttons */
+
+  /* ── Deep space — the night side (Life / Reflection levels) ── */
+  --space-ground:    #201e1d;
+  --space-ink:       #f5ead8;
+  --space-ink-75:    rgba(245, 234, 216, .75);
+  --space-ink-55:    rgba(245, 234, 216, .55);
+  --space-ink-40:    rgba(245, 234, 216, .40);
+  --space-edge:      rgba(245, 234, 216, .10);
+  --space-ring:      rgba(245, 234, 216, .05); /* telescope rings, dark */
+  --day-ring:        rgba(32, 30, 29, .05);    /* telescope rings, light */
+
+  /* ── Ember — the single warm accent (today, action, beginnings) ── */
+  --ember:           #c67139;   /* FAB, primary buttons, today line (day) */
+  --ember-hover:     #b2622d;
+  --ember-press:     #8c491a;
+  --ember-bright:    #f6a06b;   /* stars, today line + kickers on dark */
+  --ember-glow:      rgba(198, 113, 57, .4);   /* FAB pulse shadow */
+
+  /* ── The mode triad — same lightness & chroma, three hues ──
+     Loop (Labour, hue 145) · Line (Work, hue 240) · Star (Action, hue 320) */
+  --loop:        oklch(58% 0.08 145);  /* glyph strokes, checkboxes, bars */
+  --loop-ink:    oklch(42% 0.07 145);  /* kicker text on light */
+  --loop-tint:   oklch(93% 0.025 145); /* active chip / tinted fill */
+  --loop-bright: oklch(72% 0.09 145);  /* on dark ground */
+  --line:        oklch(58% 0.08 240);
+  --line-ink:    oklch(42% 0.07 240);
+  --line-tint:   oklch(93% 0.025 240);
+  --line-bright: oklch(70% 0.08 240);
+  --star:        oklch(58% 0.08 320);
+  --star-ink:    oklch(42% 0.08 320);
+  --star-tint:   oklch(94% 0.03 320);  /* principle-of-day card */
+  --star-bright: oklch(70% 0.09 320);
+
+  /* ── Type — three voices ── */
+  --font-display: "Caprasimo", serif;          /* big-picture voice: titles, principles */
+  --font-body:    "Figtree", system-ui, sans-serif;  /* working voice: items, labels */
+  --font-meta:    ui-monospace, Menlo, monospace;    /* instrument voice: kickers, dates, readouts */
+  --text-hero:    34px;   /* onboarding statements */
+  --text-title:   30px;   /* screen titles (display) */
+  --text-card:    16px;   /* card titles (display) */
+  --text-item:    15px;   /* task titles (body 600) */
+  --text-body:    13px;
+  --text-meta:    11px;   /* mono meta lines */
+  --text-kicker:  10px;   /* mono, uppercase, tracking below */
+  --track-kicker: .14em;
+
+  /* ── Shape — over-round, per Organic ── */
+  --radius-card:  24px;
+  --radius-panel: 22px;
+  --radius-row:   18px;
+  --radius-pill:  999px;   /* buttons, chips, inputs, evening bar */
+  --radius-sheet: 28px;    /* bottom sheets: 28px 28px 0 0 */
+  --radius-phone: 34px;
+
+  /* ── Elevation (from Organic) ── */
+  --shadow-sm: 0 1px 2px rgba(46, 43, 37, .14);
+  --shadow-md: 0 3px 10px rgba(46, 43, 37, .16);
+  --shadow-lg: 0 12px 32px rgba(46, 43, 37, .22);
+
+  /* ── Motion — the zoom grammar ── */
+  --t-zoom:  .45s;  /* level change (blur-through) */
+  --t-wide:  .5s;   /* zoom out to Life */
+  --t-sheet: .3s;   /* bottom sheet rise */
+  --ease-zoom: ease;
+  /* zoom in:  scale .93 → 1, opacity .25 → 1, blur 5px → 0
+     zoom out: scale 1.08 → 1, opacity .2 → 1, blur 6px → 0
+     loopPop (ritual done):  scale .5 rot -120° → 1.15 rot 8° → 1, .5s
+     starIgnite (principle): scale 1.25 rot 22° flare at 88%, 5s loop
+     spinSlow (health ring): 360° / 40s linear
+     fabPulse: ember glow 18px ↔ 28px, 3s */
+}

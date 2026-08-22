@@ -1,6 +1,6 @@
 // Acts of Life - service worker
 // Network-first: always fresh while the server is up, cached copy when it isn't.
-const CACHE = 'acts-of-life-v1';
+const CACHE = 'acts-of-life-v2';
 const CORE = [
     './',
     './index.html',

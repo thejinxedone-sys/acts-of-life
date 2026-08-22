@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="stylesheet" href="_ds/organic-6f2d4d2c-d1ff-4fa3-9864-4bdf525d5908/styles.css"><link rel="stylesheet" href="acts-of-life-tokens.css"><style>body{margin:0;background:var(--ground);font-family:var(--font-body);color:var(--ink)}a{color:var(--ember)}a:hover{color:var(--ember-press)}
+@keyframes starIgnite{0%,80%{transform:scale(1) rotate(0deg)}88%{transform:scale(1.25) rotate(22deg)}100%{transform:scale(1) rotate(0deg)}}
+@keyframes spinSlow{to{transform:rotate(360deg)}}</style></helmet>
+<div style="max-width:760px;margin:0 auto;padding:52px 32px 72px;display:flex;flex-direction:column;gap:44px">
+
+<div>
+<div style="font:600 10px var(--font-meta);letter-spacing:.14em;color:var(--ember-hover);text-transform:uppercase;margin-bottom:10px">Acts of Life · Style specification · v1</div>
+<h1 style="font-family:var(--font-display);font-weight:400;font-size:40px;line-height:1.05;margin:0 0 14px">One world, five zoom levels.</h1>
+<p style="font-size:14.5px;line-height:1.6;color:var(--ink-soft);max-width:56ch;margin:0">Every screen is the same world at a different focal length. The design carries this in four ways: a shared field of telescope rings that rescales with each level, three glyphs that stand for the three modes without words, type that loosens as you zoom out, and a blur-through camera move on every transition. Tokens live in <b style="color:var(--ink)">acts-of-life-tokens.css</b>; built on the Organic design system.</p>
+</div>
+
+<div>
+<h2 style="font-family:var(--font-display);font-weight:400;font-size:22px;margin:0 0 6px">1 · The glyph language</h2>
+<p style="font-size:13px;line-height:1.55;color:var(--ink-soft);margin:0 0 16px;max-width:60ch">Labour, Work and Action are never spelled out in the interface — the mark says it. One mark, three lives; the mode transition morphs between them.</p>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+<div style="background:var(--loop-tint);border-radius:var(--radius-panel);padding:18px">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="oklch(45% 0.08 145)" stroke-width="2.75"><circle cx="12" cy="12" r="8"></circle></svg>
+<div style="font:600 14px var(--font-body);margin:10px 0 3px">The loop <span style="font:400 10.5px var(--font-meta);color:var(--loop-ink)">LABOUR · hue 145</span></div>
+<div style="font-size:12px;line-height:1.5;color:var(--ink-soft)">Anchors you tend so everything else can move. Rituals close the ring daily; a done ritual snaps shut (loopPop). Lists bow along a dashed arc; the day's ring fills as loops close.</div></div>
+<div style="background:var(--line-tint);border-radius:var(--radius-panel);padding:18px">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="oklch(50% 0.08 240)" stroke-width="2.75" stroke-linecap="round"><path d="M4 17L20 7"></path></svg>
+<div style="font:600 14px var(--font-body);margin:10px 0 3px">The line <span style="font:400 10.5px var(--font-meta);color:var(--line-ink)">WORK · hue 240</span></div>
+<div style="font-size:12px;line-height:1.5;color:var(--ink-soft)">Paths you extend, that outlast the day — streams with phases and milestone notches. Progress literally lengthens the stroke on the horizon. Social roles live here: acts that grow a life.</div></div>
+<div style="background:var(--star-tint);border-radius:var(--radius-panel);padding:18px">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="oklch(48% 0.09 320)" style="animation:starIgnite 5s ease-in-out infinite"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"></path></svg>
+<div style="font:600 14px var(--font-body);margin:10px 0 3px">The star <span style="font:400 10.5px var(--font-meta);color:var(--star-ink)">ACTION · hue 320</span></div>
+<div style="font-size:12px;line-height:1.5;color:var(--ink-soft)">Acts that define your life. The five principles are stars — acting on one makes it flare (starIgnite); reflection lights the week's constellation on the night ground.</div></div>
+</div>
+<p style="font-size:12px;line-height:1.5;color:var(--ink-faint);margin:12px 0 0">Triad rule: same OKLCH lightness (58%) and chroma (0.08) — only hue varies. Each mode carries four steps: <span style="font-family:var(--font-meta)">base · ink · tint · bright</span> (bright is the dark-ground variant). Never use a mode color as a full-bleed chip fill; it appears as strokes, dots, thin bars and tints.</p>
+</div>
+
+<div>
+<h2 style="font-family:var(--font-display);font-weight:400;font-size:22px;margin:0 0 6px">2 · Grounds — day and deep space</h2>
+<p style="font-size:13px;line-height:1.55;color:var(--ink-soft);margin:0 0 16px;max-width:60ch">Close zoom levels (Today, Stream) live on warm cream; the widest levels (Life horizon, Evening reflection) live on warm near-black with faint rings and star specks. Zooming out is literally moving into night sky.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<div style="width:120px"><div style="height:56px;border-radius:14px;background:var(--ground);border:1px solid var(--edge)"></div><div style="font:10.5px var(--font-meta);color:var(--ink-muted);margin-top:5px">--ground #f5ead8</div></div>
+<div style="width:120px"><div style="height:56px;border-radius:14px;background:var(--ground-raised);border:1px solid var(--edge)"></div><div style="font:10.5px var(--font-meta);color:var(--ink-muted);margin-top:5px">--ground-raised</div></div>
+<div style="width:120px"><div style="height:56px;border-radius:14px;background:var(--surface-sunken)"></div><div style="font:10.5px var(--font-meta);color:var(--ink-muted);margin-top:5px">--surface-sunken</div></div>
+<div style="width:120px"><div style="height:56px;border-radius:14px;background:var(--space-ground)"></div><div style="font:10.5px var(--font-meta);color:var(--ink-muted);margin-top:5px">--space-ground</div></div>
+<div style="width:120px"><div style="height:56px;border-radius:14px;background:var(--ember)"></div><div style="font:10.5px var(--font-meta);color:var(--ink-muted);margin-top:5px">--ember #c67139</div></div>
+<div style="width:120px"><div style="height:56px;border-radius:14px;background:var(--ember-bright)"></div><div style="font:10.5px var(--font-meta);color:var(--ink-muted);margin-top:5px">--ember-bright</div></div>
+</div>
+<p style="font-size:12px;line-height:1.5;color:var(--ink-faint);margin:12px 0 0">Ember is the only warm accent and it means <i>now / begin</i>: the today line, the + button, primary actions, principle stars at night (as --ember-bright). The telescope rings are 1.5px circles at 3–6% ink, radiating from the top third; they grow one notch per zoom-out.</p>
+</div>
+
+<div>
+<h2 style="font-family:var(--font-display);font-weight:400;font-size:22px;margin:0 0 6px">3 · Type — three voices</h2>
+<div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">
+<div style="display:flex;gap:18px;align-items:baseline"><span style="font-family:var(--font-display);font-size:30px;line-height:1.1;flex:none">Today's Acts</span><span style="font-size:12px;color:var(--ink-soft)">Caprasimo 400 — the big-picture voice. Screen titles, principles, onboarding statements. Never below 16px, never for UI labels.</span></div>
+<div style="display:flex;gap:18px;align-items:baseline"><span style="font:600 15px var(--font-body);flex:none">Meditate for 15 min</span><span style="font-size:12px;color:var(--ink-soft)">Figtree — the working voice. Items 15/600, body 13/400, buttons and chips 13–14/600.</span></div>
+<div style="display:flex;gap:18px;align-items:baseline"><span style="font:600 10px var(--font-meta);letter-spacing:.14em;text-transform:uppercase;color:var(--ember-hover);flex:none">Labour · The Loop You Keep</span><span style="font-size:12px;color:var(--ink-soft)">Monospace — the instrument voice. Kickers (10px, .14em tracking, uppercase), meta lines (11px), dates, readouts ("1/4 loops closed"). This voice is what makes the app feel like a lens.</span></div>
+</div>
+</div>
+
+<div>
+<h2 style="font-family:var(--font-display);font-weight:400;font-size:22px;margin:0 0 6px">4 · Motion — the zoom grammar</h2>
+<div style="border:1px solid var(--edge);border-radius:var(--radius-panel);overflow:hidden;margin-top:12px">
+<div style="display:grid;grid-template-columns:150px 1fr;gap:0;font-size:12.5px;line-height:1.5">
+<div style="padding:10px 16px;background:var(--surface-sunken);font:600 11px var(--font-meta)">zoom in</div><div style="padding:10px 16px;color:var(--ink-soft)">scale .93 → 1 · opacity .25 → 1 · blur 5px → 0 · .45s ease. Every step down the ladder.</div>
+<div style="padding:10px 16px;background:var(--surface-sunken);font:600 11px var(--font-meta);border-top:1px solid var(--edge)">zoom out</div><div style="padding:10px 16px;color:var(--ink-soft);border-top:1px solid var(--edge)">scale 1.08 → 1 · blur 6px → 0 · .5s. Arriving at the horizon.</div>
+<div style="padding:10px 16px;background:var(--surface-sunken);font:600 11px var(--font-meta);border-top:1px solid var(--edge)">loopPop</div><div style="padding:10px 16px;color:var(--ink-soft);border-top:1px solid var(--edge)">checkbox snaps shut: scale .5 rot −120° → 1.15 → 1, .5s. Ritual completion only.</div>
+<div style="padding:10px 16px;background:var(--surface-sunken);font:600 11px var(--font-meta);border-top:1px solid var(--edge)">starIgnite</div><div style="padding:10px 16px;color:var(--ink-soft);border-top:1px solid var(--edge)">flare to 1.25 + 22° at the 88% mark of a 5s loop. Principle stars, gently alive.</div>
+<div style="padding:10px 16px;background:var(--surface-sunken);font:600 11px var(--font-meta);border-top:1px solid var(--edge)">spinSlow</div><div style="padding:10px 16px;color:var(--ink-soft);border-top:1px solid var(--edge)">360° in 40s, linear — the Health loop schematic turning on the horizon.</div>
+<div style="padding:10px 16px;background:var(--surface-sunken);font:600 11px var(--font-meta);border-top:1px solid var(--edge)">sheetUp</div><div style="padding:10px 16px;color:var(--ink-soft);border-top:1px solid var(--edge)">translateY 40px → 0, .3s. Bottom sheets (add act/stream, set dates).</div>
+</div></div>
+<p style="font-size:12px;line-height:1.5;color:var(--ink-faint);margin:12px 0 0">Rule: motion only ever means one of two things — a change of focal length, or a mark coming alive. Nothing else animates.</p>
+</div>
+
+<div>
+<h2 style="font-family:var(--font-display);font-weight:400;font-size:22px;margin:0 0 6px">5 · Component rules</h2>
+<div style="font-size:13px;line-height:1.85;color:var(--ink-soft);max-width:64ch">
+<b style="color:var(--ink)">Cards</b> — 24px radius, --surface-card fill, 1px --edge, shadow-sm. One card style everywhere; sections differ only by mono kickers.<br>
+<b style="color:var(--ink)">Pills</b> — every button, chip, input and the evening bar is fully round (999px).<br>
+<b style="color:var(--ink)">Checkboxes</b> — 26px circles stroked in the mode color; done = filled + cream check + loopPop.<br>
+<b style="color:var(--ink)">Glyph nav</b> — 44px round buttons, active = mode tint fill; the masthead kicker and tagline change with it.<br>
+<b style="color:var(--ink)">Horizon</b> — bars 6px in mode colors, milestone dots 8px (filled = done), ember today-line, past region shaded, act-dots trail behind / hollow ahead.<br>
+<b style="color:var(--ink)">Copy voice</b> — grounded, declarative, philosophical but actionable: "A life of action, tended daily" · "the anchors you tend so everything else can move" · "Did you act today?" Acknowledgement to Hannah Arendt lives in onboarding.
+</div>
+</div>
+
+<div style="border-top:1px solid var(--edge);padding-top:18px;font-size:12px;color:var(--ink-faint)">Tokens: <span style="font-family:var(--font-meta)">acts-of-life-tokens.css</span> · Prototype: Acts of Life Prototype.dc.html · Explorations: Design Options.dc.html</div>
+</div>
+</x-dc>
+</body>
+</html>
