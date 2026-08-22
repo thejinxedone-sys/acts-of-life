@@ -196,6 +196,8 @@ function render() {
 
     if (currentView.level === 0) {
         renderDailyView(appDiv);
+    } else if (currentView.level === 'review') {
+        renderReviewView(appDiv);
     } else if (currentView.level === 'mode') {
         renderModeView(appDiv, currentView.contextId);
     } else if (currentView.level === 1) {
@@ -215,7 +217,10 @@ function renderDailyView(container = document.getElementById('app')) {
     header.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center">
       <h1>Today's Acts</h1>
-      <button class="icon-btn" onclick="openDataModal()" title="Backup &amp; restore">⚙</button>
+      <div style="display:flex; gap:4px">
+        <button class="icon-btn" onclick="goToReview()" title="Weekly review">📊</button>
+        <button class="icon-btn" onclick="openDataModal()" title="Backup &amp; restore">⚙</button>
+      </div>
     </div>
   `;
     container.appendChild(header);
@@ -329,6 +334,81 @@ function renderFAB(container) {
     fab.textContent = '+';
     fab.onclick = () => openItemEditor(); // New item
     container.appendChild(fab);
+}
+
+// --- View: Weekly Review ---
+function renderReviewView(container) {
+    container.innerHTML = `
+    <header class="view-header">
+      <button onclick="goHome()">← Today</button>
+      <h1>Weekly Review</h1>
+      <div class="item-meta">Ritual consistency, last 7 days</div>
+    </header>
+  `;
+
+    // Last 7 days, oldest first
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d);
+    }
+    const dayLabels = days.map(d => d.toLocaleDateString('en-US', { weekday: 'narrow' }));
+
+    const rituals = appData.items.filter(i =>
+        i.type === 'ritual' && i.status !== 'archived' && !isGoalCompleted(i.goalId));
+
+    const wrap = document.createElement('div');
+    wrap.className = 'list-group';
+
+    if (rituals.length === 0) {
+        wrap.innerHTML = '<p class="empty-state">No active rituals to review yet.<br>Add a recurring item and check back here.</p>';
+        container.appendChild(wrap);
+        return;
+    }
+
+    // Group rituals by facet (via their goal); goal-less rituals go under "Other"
+    const groups = new Map();
+    rituals.forEach(item => {
+        const goal = appData.goals.find(g => g.id === item.goalId);
+        const facet = goal ? appData.facets.find(f => f.id === goal.facetId) : null;
+        const key = facet ? facet.id : '_other';
+        if (!groups.has(key)) groups.set(key, { facet, items: [] });
+        groups.get(key).items.push(item);
+    });
+
+    groups.forEach(({ facet, items }) => {
+        const section = document.createElement('div');
+        section.innerHTML = `<h3 class="section-heading" style="color:${(facet && facet.color) || 'var(--color-text-muted)'}">${facet ? facet.title : 'Other'}</h3>`;
+
+        items.forEach(item => {
+            let due = 0, done = 0;
+            const dots = days.map((d, idx) => {
+                const isDue = isRitualDue(item, d);
+                const isDone = isDue && isItemCompleted(item.id, d.toLocaleDateString('en-CA'));
+                if (isDue) due++;
+                if (isDone) done++;
+                const cls = isDue ? (isDone ? 'dot done' : 'dot missed') : 'dot off';
+                const style = isDone ? `style="background:${(facet && facet.color) || '#4caf50'}"` : '';
+                return `<span class="review-day"><span class="${cls}" ${style}></span><small>${dayLabels[idx]}</small></span>`;
+            }).join('');
+
+            const pct = due > 0 ? Math.round(done / due * 100) : null;
+            const row = document.createElement('div');
+            row.className = 'review-row';
+            row.innerHTML = `
+        <div class="review-info">
+          <div>${item.title}</div>
+          <div class="item-meta">${pct === null ? 'Not due this week' : `${done}/${due} days • ${pct}%`}</div>
+        </div>
+        <div class="review-dots">${dots}</div>`;
+            section.appendChild(row);
+        });
+
+        wrap.appendChild(section);
+    });
+
+    container.appendChild(wrap);
 }
 
 // --- View: Mode Overview ---

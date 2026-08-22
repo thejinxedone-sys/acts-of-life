@@ -408,3 +408,60 @@ details.collapsed-group[open] summary {
   color: var(--color-text-muted);
   padding: 32px 16px;
 }
+
+/* Weekly review */
+.review-row {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.review-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-dots {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.review-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.review-day small {
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+}
+
+.review-day .dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: block;
+  box-sizing: border-box;
+}
+
+.review-day .dot.done {
+  background: #4caf50;
+}
+
+.review-day .dot.missed {
+  border: 2px solid #ddd;
+}
+
+.review-day .dot.off {
+  background: #f0f0f0;
+  transform: scale(0.45);
+}
