@@ -583,11 +583,11 @@ function renderOnboarding() {
           <select id="wiz-facet" onchange="window.updateState('selectedFacetId', this.value)">${facetOpts}</select>
         </label>
         <label style="margin-top:16px">Goal Title
-          <input type="text" placeholder="e.g. Run a Marathon, Launch MVP" oninput="window.updateState('goalTitle', this.value)" value="${state.goalTitle}">
+          <input type="text" placeholder="e.g. Run a Marathon, Launch MVP" oninput="window.updateState('goalTitle', this.value); window.syncWizNext()" value="${state.goalTitle}">
         </label>
-        
+
         <div style="margin-top:24px">
-          <button class="btn-primary" onclick="window.nextStep()" ${!state.goalTitle ? 'disabled style="opacity:0.5"' : ''}>Next</button>
+          <button id="wiz-next" class="btn-primary" onclick="window.nextStep()">Next</button>
         </div>
       `;
         } else if (step === 4) {
@@ -597,7 +597,7 @@ function renderOnboarding() {
         <p style="text-align:center; color:#666; margin-bottom:24px">What is the very first action for <b>${state.goalTitle}</b>?</p>
         
         <label>Action Title
-          <input type="text" placeholder="e.g. Buy running shoes" oninput="window.updateState('taskTitle', this.value)">
+          <input type="text" placeholder="e.g. Buy running shoes" oninput="window.updateState('taskTitle', this.value)" value="${state.taskTitle}">
         </label>
         
         <div style="display:flex; gap:12px; margin-top:16px; margin-bottom:24px">
@@ -619,6 +619,8 @@ function renderOnboarding() {
         container.style.padding = '24px';
         container.style.maxWidth = '480px';
         container.style.margin = '0 auto';
+
+        if (step === 3) window.syncWizNext();
     };
 
     // Expose helpers globally for the string onclicks
@@ -628,7 +630,16 @@ function renderOnboarding() {
         if (f) f.active = !f.active;
         renderStep();
     };
-    window.updateState = (key, val) => { state[key] = val; renderStep(); }; // Re-render to update dependent UI
+    // Quiet update: re-rendering on every keystroke would rebuild the DOM and
+    // kick focus out of the input. Callers that need a redraw call renderStep().
+    window.updateState = (key, val) => { state[key] = val; };
+    window.syncWizNext = () => {
+        const btn = document.getElementById('wiz-next');
+        if (!btn) return;
+        const ok = !!state.goalTitle.trim();
+        btn.disabled = !ok;
+        btn.style.opacity = ok ? '' : '0.5';
+    };
     window.renderStep = renderStep;
 
     window.finishSetup = () => {
@@ -671,7 +682,7 @@ function renderOnboarding() {
 
         saveData();
         // Cleanup globals
-        delete window.nextStep; delete window.toggleFacet; delete window.updateState; delete window.finishSetup; delete window.renderStep;
+        delete window.nextStep; delete window.toggleFacet; delete window.updateState; delete window.finishSetup; delete window.renderStep; delete window.syncWizNext;
         render();
     };
 
