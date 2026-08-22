@@ -134,11 +134,28 @@ function goalNoun(facetId) {
 
 function toggleMilestone(goalId, msId) {
     const goal = appData.goals.find(g => g.id === goalId);
-    const milestone = goal && (goal.milestones || []).find(m => m.id === msId);
+    const milestones = goal ? (goal.milestones || []) : [];
+    const milestone = milestones.find(m => m.id === msId);
     if (!milestone) return;
     milestone.done = !milestone.done;
     saveData();
     render();
+
+    if (!milestone.done) return;
+
+    // Keep momentum: offer the next phase's first action, or close out the stream
+    const next = milestones.find(m => !m.done);
+    if (next) {
+        if (confirm(`"${milestone.title}" complete! Add a first action for the next phase, "${next.title}"?`)) {
+            openItemEditor(null, { goalId: goal.id, milestoneId: next.id });
+        }
+    } else if (goal.status !== 'completed') {
+        if (confirm(`All phases of "${goal.title}" are done! Mark it complete? 🏁`)) {
+            goal.status = 'completed';
+            saveData();
+            render();
+        }
+    }
 }
 
 // Count consecutive due-days (ending today) on which this ritual was completed.
@@ -399,12 +416,31 @@ function renderFAB(container) {
 }
 
 // --- View: Timeline ---
+// Zoom: 0 = fit everything to the screen; otherwise pixels per day
+const TL_SCALES = [0, 4, 8, 16];
+let timelineScale = 0;
+
+function tlZoom(dir) {
+    if (dir === 0) {
+        timelineScale = 0;
+    } else {
+        const idx = TL_SCALES.indexOf(timelineScale);
+        timelineScale = TL_SCALES[Math.min(Math.max(idx + dir, 0), TL_SCALES.length - 1)];
+    }
+    render();
+}
+
 function renderTimelineView(container) {
     container.innerHTML = `
     <header class="view-header">
       <button onclick="goHome()">← Today</button>
       <h1>Timeline</h1>
       <div class="item-meta">Active goals &amp; streams over time</div>
+      <div class="review-toggle">
+        <button onclick="tlZoom(-1)" ${timelineScale === 0 ? 'disabled' : ''}>−</button>
+        <button onclick="tlZoom(0)" class="${timelineScale === 0 ? 'active' : ''}">Fit</button>
+        <button onclick="tlZoom(1)" ${timelineScale === TL_SCALES[TL_SCALES.length - 1] ? 'disabled' : ''}>+</button>
+      </div>
     </header>
   `;
 
@@ -427,10 +463,26 @@ function renderTimelineView(container) {
         const pos = t => (t - min) / (max - min) * 100;
         const fmt = t => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
+        const totalDays = (max - min) / DAY;
+
+        // Month markers when the range is long or zoomed in
+        let monthMarks = '';
+        if (totalDays > 45 || timelineScale > 0) {
+            const d = new Date(min);
+            d.setDate(1);
+            d.setMonth(d.getMonth() + 1);
+            while (+d < max) {
+                monthMarks += `<span class="tl-month" style="left:${pos(+d)}%">${d.toLocaleDateString('en-US', { month: 'short' })}</span>`;
+                d.setMonth(d.getMonth() + 1);
+            }
+        }
+
         const chart = document.createElement('div');
         chart.className = 'timeline';
+        if (timelineScale > 0) chart.style.width = `${Math.round(totalDays * timelineScale)}px`;
         chart.innerHTML = `
       <div class="tl-axis"><span>${fmt(min)}</span><span>${fmt(max)}</span></div>
+      ${monthMarks}
       <div class="tl-today" style="left:${pos(today)}%"><span>Today</span></div>`;
 
         // Group bars by area, in facet order
@@ -472,7 +524,17 @@ function renderTimelineView(container) {
             });
         });
 
-        wrap.appendChild(chart);
+        const scroller = document.createElement('div');
+        scroller.className = 'timeline-scroll';
+        scroller.appendChild(chart);
+        wrap.appendChild(scroller);
+
+        // When zoomed, center the viewport on today
+        if (timelineScale > 0) {
+            container.appendChild(wrap);
+            const todayPx = pos(today) / 100 * chart.offsetWidth;
+            scroller.scrollLeft = Math.max(0, todayPx - scroller.clientWidth / 2);
+        }
     }
 
     if (undated.length > 0) {
@@ -608,6 +670,12 @@ function renderModeView(container, modeId) {
         const goalIds = goals.map(g => g.id);
         const activeItems = appData.items.filter(i => goalIds.includes(i.goalId) && i.status !== 'archived');
 
+        // Per-stream phase progress, e.g. "NextCandle 2/5 · Marathon 0/3"
+        const phaseLine = goals
+            .filter(g => g.status !== 'completed' && (g.milestones || []).length > 0)
+            .map(g => `${g.title} ${g.milestones.filter(m => m.done).length}/${g.milestones.length}`)
+            .join(' · ');
+
         const div = document.createElement('div');
         div.className = 'list-item';
         div.innerHTML = `
@@ -615,6 +683,7 @@ function renderModeView(container, modeId) {
       <div style="flex:1">
         <div>${facet.title}</div>
         <div class="item-meta">${goals.length} goal${goals.length === 1 ? '' : 's'} • ${activeItems.length} active item${activeItems.length === 1 ? '' : 's'}</div>
+        ${phaseLine ? `<div class="item-meta">⚑ ${phaseLine}</div>` : ''}
       </div>
       <span style="color:#aaa">›</span>
     `;
@@ -691,7 +760,19 @@ function renderFacetView(container, facetId) {
         const div = document.createElement('div');
         div.className = 'list-item';
         if (goal.status === 'completed') div.style.opacity = '0.6';
-        const meta = goal.status === 'completed' ? 'Completed 🏁' : (goal.deadline ? `Deadline: ${goal.deadline}` : '');
+        const metaParts = [];
+        if (goal.status === 'completed') {
+            metaParts.push('Completed 🏁');
+        } else {
+            const msArr = goal.milestones || [];
+            if (msArr.length > 0) {
+                const done = msArr.filter(m => m.done).length;
+                const current = msArr.find(m => !m.done);
+                metaParts.push(`⚑ ${done}/${msArr.length}${current ? ' · ' + current.title : ''}`);
+            }
+            if (goal.deadline) metaParts.push(`Deadline: ${goal.deadline}`);
+        }
+        const meta = metaParts.join(' • ');
         div.innerHTML = `
       <span class="icon">${goal.icon || '🎯'}</span>
       <div style="flex:1">
@@ -1162,7 +1243,7 @@ function openItemEditor(item = null, prefill = {}) {
             msSelect.innerHTML = '<option value=""></option>';
             return;
         }
-        const cur = (isEditing && item.milestoneId) || '';
+        const cur = (isEditing ? item.milestoneId : prefill.milestoneId) || '';
         msSelect.innerHTML = '<option value="">— None —</option>' +
             list.map(mst => `<option value="${mst.id}" ${mst.id === cur ? 'selected' : ''}>${mst.title}</option>`).join('');
         msGroup.style.display = 'block';
