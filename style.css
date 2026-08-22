@@ -384,11 +384,11 @@ select:focus {
   color: #c0392b;
 }
 
-details.someday {
+details.collapsed-group {
   margin-top: 16px;
 }
 
-details.someday summary {
+details.collapsed-group summary {
   padding: 8px 4px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -399,7 +399,7 @@ details.someday summary {
   user-select: none;
 }
 
-details.someday[open] summary {
+details.collapsed-group[open] summary {
   margin-bottom: 8px;
 }
 

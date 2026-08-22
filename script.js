@@ -62,6 +62,16 @@ function openItemEditorById(itemId) {
     if (item) openItemEditor(item);
 }
 
+function openGoalEditorById(goalId) {
+    const goal = appData.goals.find(g => g.id === goalId);
+    if (goal) openGoalEditor({}, goal);
+}
+
+function goToReview() {
+    currentView = { level: 'review', contextId: null };
+    render();
+}
+
 // --- Initialization ---
 function init() {
     loadData();
@@ -97,6 +107,12 @@ function isRitualDue(item, dateObj) {
 function isItemCompleted(itemId, dateStr) {
     if (!appData.history[dateStr]) return false;
     return appData.history[dateStr][itemId] === true;
+}
+
+// Items under a completed goal are paused: hidden from daily/overdue/someday
+function isGoalCompleted(goalId) {
+    const goal = appData.goals.find(g => g.id === goalId);
+    return !!goal && goal.status === 'completed';
 }
 
 // Count consecutive due-days (ending today) on which this ritual was completed.
@@ -138,6 +154,7 @@ function getDailyItems() {
 
     return appData.items.filter(item => {
         if (item.status === 'archived') return false;
+        if (isGoalCompleted(item.goalId)) return false;
 
         if (item.type === 'ritual') {
             return isRitualDue(item, todayDate);
@@ -155,6 +172,7 @@ function getOverdueTasks() {
     return appData.items.filter(item =>
         item.type === 'task' &&
         item.status !== 'archived' &&
+        !isGoalCompleted(item.goalId) &&
         item.scheduled_date &&
         item.scheduled_date < todayStr &&
         !isItemCompleted(item.id, item.scheduled_date)
@@ -166,6 +184,7 @@ function getSomedayTasks() {
     return appData.items.filter(item =>
         item.type === 'task' &&
         item.status !== 'archived' &&
+        !isGoalCompleted(item.goalId) &&
         !item.scheduled_date
     );
 }
@@ -244,7 +263,7 @@ function renderDailyView(container = document.getElementById('app')) {
 
     if (someday.length > 0) {
         const det = document.createElement('details');
-        det.className = 'someday';
+        det.className = 'collapsed-group';
         det.innerHTML = `<summary>Someday (${someday.length})</summary>`;
         someday.forEach(item => det.appendChild(renderItemCard(item, todayStr)));
         listDiv.appendChild(det);
@@ -418,19 +437,38 @@ function renderFacetView(container, facetId) {
 
     // Goals List
     const goals = appData.goals.filter(g => g.facetId === facetId);
+    const activeGoals = goals.filter(g => g.status !== 'completed');
+    const completedGoals = goals.filter(g => g.status === 'completed');
     const list = document.createElement('div');
     list.className = 'list-group';
 
-    goals.forEach(goal => {
+    const goalRow = (goal) => {
         const div = document.createElement('div');
         div.className = 'list-item';
-        div.innerHTML = `<span class="icon">${goal.icon || '🎯'}</span> <span>${goal.title}</span>`;
+        if (goal.status === 'completed') div.style.opacity = '0.6';
+        const meta = goal.status === 'completed' ? 'Completed 🏁' : (goal.deadline ? `Deadline: ${goal.deadline}` : '');
+        div.innerHTML = `
+      <span class="icon">${goal.icon || '🎯'}</span>
+      <div style="flex:1">
+        <div>${goal.title}</div>
+        ${meta ? `<div class="item-meta">${meta}</div>` : ''}
+      </div>`;
         div.onclick = () => {
             currentView = { level: 2, contextId: goal.id };
             render();
         };
-        list.appendChild(div);
-    });
+        return div;
+    };
+
+    activeGoals.forEach(goal => list.appendChild(goalRow(goal)));
+
+    if (completedGoals.length > 0) {
+        const det = document.createElement('details');
+        det.className = 'collapsed-group';
+        det.innerHTML = `<summary>Completed (${completedGoals.length})</summary>`;
+        completedGoals.forEach(goal => det.appendChild(goalRow(goal)));
+        list.appendChild(det);
+    }
 
     const addBtn = document.createElement('button');
     addBtn.className = 'btn-text';
@@ -452,8 +490,11 @@ function renderGoalView(container, goalId) {
 
     container.innerHTML = `
     <header class="view-header">
-      <button onclick="goToFacet('${goal.facetId}')">← ${facet ? facet.title : 'Back'}</button>
-      <h1>${goal.title}</h1>
+      <div style="display:flex; justify-content:space-between; align-items:center; align-self:stretch">
+        <button onclick="goToFacet('${goal.facetId}')">← ${facet ? facet.title : 'Back'}</button>
+        <button class="icon-btn" onclick="openGoalEditorById('${goal.id}')" title="Edit goal">✎</button>
+      </div>
+      <h1>${goal.title}${goal.status === 'completed' ? ' 🏁' : ''}</h1>
       <div class="meta">Deadline: ${goal.deadline || 'None'}</div>
     </header>
   `;
@@ -829,28 +870,59 @@ function openItemEditor(item = null, prefill = {}) {
     }
 }
 
-function openGoalEditor(defaults = {}) {
-    const facetOpts = appData.facets.map(f => `<option value="${f.id}" ${f.id === defaults.facetId ? 'selected' : ''}>${f.title}</option>`).join('');
+function openGoalEditor(defaults = {}, goal = null) {
+    const isEditing = !!goal;
+    const facetIdVal = isEditing ? goal.facetId : (defaults.facetId || '');
+    const facetOpts = appData.facets.map(f => `<option value="${f.id}" ${f.id === facetIdVal ? 'selected' : ''}>${f.title}</option>`).join('');
+    const isCompleted = isEditing && goal.status === 'completed';
 
     const html = `
-    <label>Goal Title <input id="inp-g-title" type="text" autofocus></label>
+    <label>Goal Title <input id="inp-g-title" type="text" value="${isEditing ? goal.title : ''}" autofocus></label>
     <label>Area (Facet) <select id="inp-g-facet">${facetOpts}</select></label>
-    <label>Deadline <input id="inp-g-deadline" type="date"></label>
+    <label>Deadline <input id="inp-g-deadline" type="date" value="${isEditing ? (goal.deadline || '') : ''}"></label>
+    ${isEditing ? `
+      <button id="btn-g-complete" class="btn-secondary">${isCompleted ? 'Reactivate Goal' : 'Mark Complete 🏁'}</button>
+      <button id="btn-g-delete" class="btn-secondary" style="color:#c0392b">Delete Goal</button>` : ''}
   `;
 
-    renderModal('New Goal', html, (modal) => {
-        const title = modal.querySelector('#inp-g-title').value;
+    const modal = renderModal(isEditing ? 'Edit Goal' : 'New Goal', html, (m) => {
+        const title = m.querySelector('#inp-g-title').value.trim();
         if (!title) return false;
 
-        appData.goals.push({
-            id: 'goal_' + Date.now(),
+        const data = {
             title,
-            icon: '🎯',
-            facetId: modal.querySelector('#inp-g-facet').value,
-            deadline: modal.querySelector('#inp-g-deadline').value
-        });
+            facetId: m.querySelector('#inp-g-facet').value,
+            deadline: m.querySelector('#inp-g-deadline').value
+        };
+        if (isEditing) {
+            Object.assign(goal, data);
+        } else {
+            appData.goals.push({ id: 'goal_' + Date.now(), icon: '🎯', status: 'active', ...data });
+        }
         return true;
     });
+
+    if (isEditing) {
+        modal.querySelector('#btn-g-complete').onclick = () => {
+            goal.status = isCompleted ? 'active' : 'completed';
+            modal.remove();
+            saveData();
+            render();
+        };
+        modal.querySelector('#btn-g-delete').onclick = () => {
+            const itemCount = appData.items.filter(i => i.goalId === goal.id).length;
+            const msg = itemCount > 0
+                ? `Delete "${goal.title}"? Its ${itemCount} item(s) will be kept, without a goal.`
+                : `Delete "${goal.title}"?`;
+            if (confirm(msg)) {
+                appData.items.forEach(i => { if (i.goalId === goal.id) i.goalId = ''; });
+                appData.goals = appData.goals.filter(g => g.id !== goal.id);
+                modal.remove();
+                saveData();
+                goToFacet(goal.facetId);
+            }
+        };
+    }
 }
 
 // --- Backup & Restore ---
