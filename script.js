@@ -138,6 +138,8 @@ function render() {
 
     if (currentView.level === 0) {
         renderDailyView(appDiv);
+    } else if (currentView.level === 'mode') {
+        renderModeView(appDiv, currentView.contextId);
     } else if (currentView.level === 1) {
         renderFacetView(appDiv, currentView.contextId);
     } else if (currentView.level === 2) {
@@ -162,11 +164,7 @@ function renderDailyView(container = document.getElementById('app')) {
         const btn = document.createElement('button');
         btn.className = `mode-chip ${mode.type}`;
         btn.textContent = mode.title;
-        btn.onclick = () => showFacetsList(mode.id); // Placeholder for Zoom-in menu or Bottom Sheet?
-        // User interaction: "Zoom out to cascade". 
-        // Maybe checking Facets under this mode?
-        // Let's implement a simple "Filter/Zoom" logic. 
-        // For now, these buttons will open a "Facet Picker" for that mode.
+        btn.onclick = () => goToMode(mode.id);
         navDiv.appendChild(btn);
     });
     container.appendChild(navDiv);
@@ -240,28 +238,96 @@ function renderFAB(container) {
     container.appendChild(fab);
 }
 
-// --- Navigation Helpers ---
-function showFacetsList(modeId) {
-    // Simple "Zoom In" to Facets of this mode
-    // For simplicity, let's just pick the first facet or show a selector if multiple? 
-    // User asked "Click Mode -> List Facets". 
-    // Since we don't have a "Mode View" in requirements, maybe we show a bottom sheet of facets?
-    // OR we just assume the user wants to see the layout of this mode. 
+// --- View: Mode Overview ---
+const MODE_TAGLINES = {
+    circle: 'Your anchors — the areas you maintain.',
+    line: 'Your paths forward — the areas you advance.',
+    web: 'Your connections — the people around you.'
+};
 
-    // Let's perform a "Zoom" animation to a "Mode Overview" which lists active Facets.
-    // Ideally, valid Level 1 is "Facet View". 
-    // Let's prompt user to pick a facet to drill into.
+function renderModeView(container, modeId) {
+    const mode = appData.modes.find(m => m.id === modeId);
+    if (!mode) return goHome();
+
+    container.innerHTML = `
+    <header class="view-header">
+      <button onclick="goHome()">← Today</button>
+      <h1>${mode.title}</h1>
+      <div class="item-meta">${MODE_TAGLINES[mode.type] || ''}</div>
+    </header>
+  `;
+
     const facets = appData.facets.filter(f => f.modeId === modeId);
+    const list = document.createElement('div');
+    list.className = 'list-group';
+
     if (facets.length === 0) {
-        alert('No facets in this mode yet.');
-        return;
+        list.innerHTML = '<p class="empty-state">No areas in this mode yet.</p>';
     }
-    // For MVP, just go to the first one or open a chooser? 
-    // Let's open a chooser modal.
-    openSelectionModal('Select Area', facets, (selectedFacet) => {
-        currentView = { level: 1, contextId: selectedFacet.id };
-        render();
+
+    facets.forEach(facet => {
+        const goals = appData.goals.filter(g => g.facetId === facet.id);
+        const goalIds = goals.map(g => g.id);
+        const activeItems = appData.items.filter(i => goalIds.includes(i.goalId) && i.status !== 'archived');
+
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = `
+      <span style="width:12px; height:12px; border-radius:50%; background:${facet.color || '#ccc'}; flex-shrink:0"></span>
+      <div style="flex:1">
+        <div>${facet.title}</div>
+        <div class="item-meta">${goals.length} goal${goals.length === 1 ? '' : 's'} • ${activeItems.length} active item${activeItems.length === 1 ? '' : 's'}</div>
+      </div>
+      <span style="color:#aaa">›</span>
+    `;
+        div.onclick = () => goToFacet(facet.id);
+        list.appendChild(div);
     });
+
+    container.appendChild(list);
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'btn-text';
+    addBtn.textContent = '+ Add Area';
+    addBtn.onclick = () => openFacetEditor(modeId);
+    container.appendChild(addBtn);
+}
+
+const FACET_COLORS = ['#4caf50', '#2196f3', '#9c27b0', '#ff9800', '#e91e63', '#009688', '#795548', '#607d8b'];
+
+function openFacetEditor(modeId) {
+    const swatches = FACET_COLORS.map((c, i) => `
+    <label style="cursor:pointer">
+      <input type="radio" name="inp-f-color" value="${c}" ${i === 0 ? 'checked' : ''} style="display:none">
+      <span class="color-swatch" style="display:inline-block; width:28px; height:28px; border-radius:50%; background:${c}; border:3px solid transparent"></span>
+    </label>
+  `).join('');
+
+    const html = `
+    <label>Area Title <input id="inp-f-title" type="text" placeholder="e.g. Fitness, Side Project" autofocus></label>
+    <label>Color</label>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">${swatches}</div>
+  `;
+
+    const modal = renderModal('New Area', html, (m) => {
+        const title = m.querySelector('#inp-f-title').value.trim();
+        if (!title) return false;
+        appData.facets.push({
+            id: 'facet_' + Date.now() + Math.random().toString(36).substr(2, 4),
+            title,
+            color: m.querySelector('input[name="inp-f-color"]:checked').value,
+            modeId
+        });
+        return true;
+    });
+
+    const highlightSwatch = () => {
+        modal.querySelectorAll('input[name="inp-f-color"]').forEach(input => {
+            input.nextElementSibling.style.borderColor = input.checked ? '#2c3e50' : 'transparent';
+        });
+    };
+    modal.querySelectorAll('input[name="inp-f-color"]').forEach(input => input.addEventListener('change', highlightSwatch));
+    highlightSwatch();
 }
 
 function renderFacetView(container, facetId) {
@@ -701,28 +767,6 @@ function openGoalEditor(defaults = {}) {
         return true;
     });
 }
-
-function openSelectionModal(title, options, callback) {
-    const listHtml = options.map((o, i) => `
-    <div class="select-opt" data-idx="${i}" style="padding:12px; border-bottom:1px solid #eee; cursor:pointer">
-      ${o.title}
-    </div>
-  `).join('');
-
-    renderModal(title, `<div id="sel-list">${listHtml}</div>`, () => false); // No save button action
-
-    // Hacky attach
-    document.querySelectorAll('.select-opt').forEach(el => {
-        el.onclick = () => {
-            const idx = parseInt(el.dataset.idx);
-            callback(options[idx]);
-            document.querySelector('.modal-overlay').remove();
-        };
-    });
-    // Hide footer for selection
-    document.querySelector('.modal-footer').style.display = 'none';
-}
-
 
 // Init
 init();
