@@ -99,6 +99,24 @@ function isItemCompleted(itemId, dateStr) {
     return appData.history[dateStr][itemId] === true;
 }
 
+// Count consecutive due-days (ending today) on which this ritual was completed.
+// An incomplete today doesn't break the streak — it just doesn't count yet.
+function computeStreak(item) {
+    let streak = 0;
+    const d = new Date();
+    for (let i = 0; i < 365; i++) {
+        if (isRitualDue(item, d)) {
+            if (isItemCompleted(item.id, d.toLocaleDateString('en-CA'))) {
+                streak++;
+            } else if (i > 0) {
+                break;
+            }
+        }
+        d.setDate(d.getDate() - 1);
+    }
+    return streak;
+}
+
 // Toggle completion
 function toggleItemCompletion(itemId, dateStr) {
     if (!appData.history[dateStr]) appData.history[dateStr] = {};
@@ -129,6 +147,27 @@ function getDailyItems() {
         }
         return false;
     });
+}
+
+// Tasks scheduled before today and never checked off on their scheduled day
+function getOverdueTasks() {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    return appData.items.filter(item =>
+        item.type === 'task' &&
+        item.status !== 'archived' &&
+        item.scheduled_date &&
+        item.scheduled_date < todayStr &&
+        !isItemCompleted(item.id, item.scheduled_date)
+    ).sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
+}
+
+// Unscheduled one-off tasks (the "Someday" inbox)
+function getSomedayTasks() {
+    return appData.items.filter(item =>
+        item.type === 'task' &&
+        item.status !== 'archived' &&
+        !item.scheduled_date
+    );
 }
 
 // --- Rendering Switch ---
@@ -171,19 +210,41 @@ function renderDailyView(container = document.getElementById('app')) {
 
     // Task List
     const dailyItems = getDailyItems();
+    const overdue = getOverdueTasks();
+    const someday = getSomedayTasks();
     const listDiv = document.createElement('div');
     listDiv.className = 'daily-list';
 
+    const addHeading = (text, extraClass = '') => {
+        const h = document.createElement('h3');
+        h.className = `section-heading ${extraClass}`.trim();
+        h.textContent = text;
+        listDiv.appendChild(h);
+    };
+
+    if (overdue.length > 0) {
+        addHeading(`Overdue (${overdue.length})`, 'overdue');
+        // Completion for an overdue task is recorded against its scheduled day
+        overdue.forEach(item => listDiv.appendChild(renderItemCard(item, item.scheduled_date)));
+        addHeading('Today');
+    }
+
     if (dailyItems.length === 0) {
-        listDiv.innerHTML = '<p class="empty-state">No acts planned for today.</p>';
+        listDiv.insertAdjacentHTML('beforeend', '<p class="empty-state">No acts planned for today.</p>');
     } else {
-        // Group by Mode -> Facet
-        // Helper to get ancestry
         dailyItems.forEach(item => {
-            const itemEl = renderItemCard(item, todayStr);
-            listDiv.appendChild(itemEl);
+            listDiv.appendChild(renderItemCard(item, todayStr));
         });
     }
+
+    if (someday.length > 0) {
+        const det = document.createElement('details');
+        det.className = 'someday';
+        det.innerHTML = `<summary>Someday (${someday.length})</summary>`;
+        someday.forEach(item => det.appendChild(renderItemCard(item, todayStr)));
+        listDiv.appendChild(det);
+    }
+
     container.appendChild(listDiv);
 
     // Quick Add FAB
@@ -214,6 +275,14 @@ function renderItemCard(item, dateStr) {
     const metaParts = [];
     if (facet) metaParts.push(facet.title);
     if (goal) metaParts.push(goal.title);
+    if (item.type === 'ritual') {
+        const streak = computeStreak(item);
+        if (streak > 0) metaParts.push(`🔥 ${streak}`);
+    }
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    if (item.type === 'task' && item.scheduled_date && item.scheduled_date < todayStr) {
+        metaParts.unshift(`📅 ${item.scheduled_date}`);
+    }
 
     const content = document.createElement('div');
     content.className = 'content';
