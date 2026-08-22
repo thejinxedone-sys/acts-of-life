@@ -193,7 +193,12 @@ function renderDailyView(container = document.getElementById('app')) {
 
     // Header
     const header = document.createElement('header');
-    header.innerHTML = `<h1>Today's Acts</h1>`;
+    header.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center">
+      <h1>Today's Acts</h1>
+      <button class="icon-btn" onclick="openDataModal()" title="Backup &amp; restore">⚙</button>
+    </div>
+  `;
     container.appendChild(header);
 
     // Mode Navigation (Top chips)
@@ -835,6 +840,55 @@ function openGoalEditor(defaults = {}) {
         });
         return true;
     });
+}
+
+// --- Backup & Restore ---
+function openDataModal() {
+    const html = `
+    <p style="font-size:0.9rem; color:#666">Your data lives only in this browser. Export a backup file regularly, and import it to restore or move to another device.</p>
+    <button id="btn-export" class="btn-secondary">Export backup (JSON)</button>
+    <label class="btn-secondary" style="text-align:center; cursor:pointer">Import backup…
+      <input id="inp-import" type="file" accept=".json,application/json" style="display:none">
+    </label>
+  `;
+    const modal = renderModal('Backup & Restore', html, () => false);
+    modal.querySelector('.modal-footer').style.display = 'none';
+
+    modal.querySelector('#btn-export').onclick = () => {
+        const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `acts-of-life-backup-${new Date().toLocaleDateString('en-CA')}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    };
+
+    modal.querySelector('#inp-import').onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            let data;
+            try {
+                data = JSON.parse(reader.result);
+            } catch (err) {
+                alert('Could not read this file as JSON.');
+                return;
+            }
+            if (!Array.isArray(data.modes) || !Array.isArray(data.facets) || !Array.isArray(data.items)) {
+                alert('This file does not look like an Acts of Life backup.');
+                return;
+            }
+            if (!confirm('Importing replaces everything currently in the app. Continue?')) return;
+            appData = data;
+            if (!appData.goals) appData.goals = [];
+            if (!appData.history) appData.history = {};
+            saveData();
+            modal.remove();
+            goHome();
+        };
+        reader.readAsText(file);
+    };
 }
 
 // Init
