@@ -259,7 +259,8 @@ let lastDepth = 2;
 
 function goHome() { currentView = { level: 'home', contextId: null }; render(); }
 function goLife() { currentView = { level: 'life', contextId: null }; render(); }
-function goReflect() { currentView = { level: 'reflect', contextId: null }; render(); }
+let reflectDial = 0; // index into past evenings, 0 = most recent
+function goReflect() { reflectDial = 0; currentView = { level: 'reflect', contextId: null }; render(); }
 function goReview(range) { currentView = { level: 'review', contextId: range || 'week' }; render(); }
 function goStream(goalId, from) {
     currentView = { level: 'stream', contextId: goalId, from: from || currentView.level };
@@ -936,19 +937,19 @@ function renderLife(container) {
         loopCard.style.cssText = 'display:flex;gap:18px;align-items:center;padding:13px 16px;border-radius:20px;border:1px solid var(--space-edge)';
         loopCard.innerHTML = `
       <svg width="62" height="62" viewBox="0 0 64 64" style="flex:none;animation:spinSlow 40s linear infinite"><circle cx="32" cy="32" r="24" fill="none" stroke="var(--loop-bright)" stroke-width="2" opacity="0.5"></circle><circle cx="32" cy="8" r="3.5" fill="var(--loop-bright)"></circle><circle cx="56" cy="32" r="3.5" fill="var(--loop-bright)"></circle><circle cx="32" cy="56" r="3.5" fill="none" stroke="var(--loop-bright)" stroke-width="1.5"></circle><circle cx="8" cy="32" r="3.5" fill="none" stroke="var(--loop-bright)" stroke-width="1.5"></circle></svg>
-      <div style="font:12px/1.6 var(--font-body);color:var(--space-ink-55)"><b style="color:rgba(245,234,216,.8)">${esc(lf.title)}</b> · the loop, turning daily<br><span style="font:10.5px var(--font-meta);color:rgba(245,234,216,.45)">${esc(rituals.slice(0, 4).map(r => r.title).join(' · '))}</span><br>${best > 0 ? best + '-day tending streak' : 'begin the turning'}</div>`;
+      <div style="font:12px/1.6 var(--font-body);color:var(--space-ink-55)"><b style="color:rgba(245,234,216,.8)">${esc(lf.title)}</b> · the loop, turning daily<br><span style="font:10.5px var(--font-meta);color:rgba(245,234,216,.45)">${esc(rituals.slice(0, 4).map(r => r.title).join(' · '))}</span><br>${best > 0 ? best + '-day trending stream' : 'begin the turning'}</div>`;
         pad.appendChild(loopCard);
         break;
     }
 
-    // The trail behind
+    // The trail behind — one-off acts only; rituals live in the loop
     const trail = [];
     for (let i = actDates.length - 1; i >= 0 && trail.length < 3; i--) {
         const d = actDates[i];
         const ids = Object.keys(appData.history[d]).filter(k => appData.history[d][k]);
         for (const id of ids) {
             const it = appData.items.find(x => x.id === id);
-            if (it) {
+            if (it && it.type === 'task') {
                 const g = appData.goals.find(x => x.id === it.goalId);
                 trail.push({ d, label: it.title + (g ? ' — ' + g.title : '') });
                 if (trail.length >= 3) break;
@@ -977,8 +978,9 @@ function renderLife(container) {
         pad.appendChild(div);
     }
 
-    // Needs dates
-    const undated = activeGoals.filter(g => !g.start_date || !g.deadline);
+    // Needs dates — loops (labour goals) don't get arcs, so don't ask them for dates
+    const undated = activeGoals.filter(g =>
+        (!g.start_date || !g.deadline) && modeTypeOfGoal(g) !== 'labour');
     if (undated.length > 0) {
         const div = document.createElement('div');
         div.innerHTML = `<div class="kicker" style="font-size:9px;color:var(--space-ink-40);margin-bottom:8px">Needs dates</div>`;
@@ -1082,6 +1084,43 @@ function renderReflect(container) {
     week.innerHTML = `<div class="kicker" style="font-size:9px;color:var(--space-ink-40);margin-bottom:8px">This week's constellation</div>
     <div style="display:flex;gap:14px;align-items:flex-end">${dotsHtml}</div>`;
     pad.appendChild(week);
+
+    // Past evenings — a dial through what you wrote before
+    const pastDates = Array.from(new Set(
+        Object.keys(appData.principles.marks).concat(Object.keys(appData.principles.notes))
+    )).filter(d =>
+        d < ts &&
+        ((appData.principles.notes[d] || '').trim() ||
+            Object.values(appData.principles.marks[d] || {}).some(Boolean))
+    ).sort().reverse();
+
+    if (pastDates.length > 0) {
+        reflectDial = Math.min(reflectDial, pastDates.length - 1);
+        const d = pastDates[reflectDial];
+        const dm = appData.principles.marks[d] || {};
+        const lived = PRINCIPLES.filter((p, i) => dm[i]).map(p => p[0]);
+        const noteTxt = (appData.principles.notes[d] || '').trim();
+        const dObj = new Date(d);
+        const dLabel = dObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short' }) + ' ' + dObj.getDate();
+
+        const dial = document.createElement('div');
+        dial.style.cssText = 'border:1px solid var(--space-edge);border-radius:20px;padding:13px 16px';
+        dial.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="kicker" style="font-size:9px;color:var(--space-ink-40)">Past evenings · ${pastDates.length}</span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <button id="dial-prev" class="icon-round" style="width:24px;height:24px;font-size:12px" ${reflectDial >= pastDates.length - 1 ? 'disabled' : ''}>‹</button>
+          <span style="font:10px var(--font-meta);color:var(--space-ink-55)">${dLabel}</span>
+          <button id="dial-next" class="icon-round" style="width:24px;height:24px;font-size:12px" ${reflectDial <= 0 ? 'disabled' : ''}>›</button>
+        </span>
+      </div>
+      ${lived.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:${noteTxt ? '8px' : '0'}">${lived.map(n =>
+            `<span style="display:inline-flex;align-items:center;gap:5px;font:10px var(--font-meta);color:var(--ember-bright)">${starSVG(9, '#f6a06b')}${n}</span>`).join('')}</div>` : ''}
+      ${noteTxt ? `<div style="font:12px/1.5 var(--font-body);color:var(--space-ink-55);font-style:italic">"${esc(noteTxt)}"</div>` : ''}`;
+        dial.querySelector('#dial-prev').onclick = () => { reflectDial++; render(); };
+        dial.querySelector('#dial-next').onclick = () => { reflectDial--; render(); };
+        pad.appendChild(dial);
+    }
 
     const close = document.createElement('button');
     close.className = 'btn-ember';
@@ -1766,6 +1805,11 @@ function renderOnboarding() {
 
 // --- Init ---
 function init() {
+    // Ask the browser to protect this origin's storage from eviction.
+    // Granted automatically for installed PWAs in Chrome; harmless elsewhere.
+    if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist();
+    }
     loadData();
     if (!appData.meta.onboarded && appData.facets.length === 0) {
         renderOnboarding();
