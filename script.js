@@ -67,6 +67,11 @@ function openGoalEditorById(goalId) {
     if (goal) openGoalEditor({}, goal);
 }
 
+function goToTimeline() {
+    currentView = { level: 'timeline', contextId: null };
+    render();
+}
+
 function goToReview() {
     currentView = { level: 'review', contextId: 'week' };
     render();
@@ -219,6 +224,8 @@ function render() {
         renderDailyView(appDiv);
     } else if (currentView.level === 'review') {
         renderReviewView(appDiv);
+    } else if (currentView.level === 'timeline') {
+        renderTimelineView(appDiv);
     } else if (currentView.level === 'mode') {
         renderModeView(appDiv, currentView.contextId);
     } else if (currentView.level === 1) {
@@ -239,6 +246,7 @@ function renderDailyView(container = document.getElementById('app')) {
     <div style="display:flex; justify-content:space-between; align-items:center">
       <h1>Today's Acts</h1>
       <div style="display:flex; gap:4px">
+        <button class="icon-btn" onclick="goToTimeline()" title="Timeline">🗓</button>
         <button class="icon-btn" onclick="goToReview()" title="Weekly review">📊</button>
         <button class="icon-btn" onclick="openDataModal()" title="Backup &amp; restore">⚙</button>
       </div>
@@ -388,6 +396,101 @@ function renderFAB(container) {
     fab.textContent = '+';
     fab.onclick = () => openItemEditor(); // New item
     container.appendChild(fab);
+}
+
+// --- View: Timeline ---
+function renderTimelineView(container) {
+    container.innerHTML = `
+    <header class="view-header">
+      <button onclick="goHome()">← Today</button>
+      <h1>Timeline</h1>
+      <div class="item-meta">Active goals &amp; streams over time</div>
+    </header>
+  `;
+
+    const active = appData.goals.filter(g => g.status !== 'completed');
+    const dated = active.filter(g => g.start_date && g.deadline);
+    const undated = active.filter(g => !g.start_date || !g.deadline);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'list-group';
+
+    if (dated.length === 0) {
+        wrap.innerHTML = '<p class="empty-state">Nothing to plot yet.<br>Give a goal a start date and deadline to see it here.</p>';
+    } else {
+        const DAY = 864e5;
+        const today = +new Date(new Date().toLocaleDateString('en-CA'));
+        let min = Math.min(...dated.map(g => +new Date(g.start_date)), today);
+        let max = Math.max(...dated.map(g => +new Date(g.deadline)), today);
+        const pad = Math.max(Math.round((max - min) / 20), 3 * DAY);
+        min -= pad; max += pad;
+        const pos = t => (t - min) / (max - min) * 100;
+        const fmt = t => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        const chart = document.createElement('div');
+        chart.className = 'timeline';
+        chart.innerHTML = `
+      <div class="tl-axis"><span>${fmt(min)}</span><span>${fmt(max)}</span></div>
+      <div class="tl-today" style="left:${pos(today)}%"><span>Today</span></div>`;
+
+        // Group bars by area, in facet order
+        const byFacet = new Map();
+        dated.forEach(g => {
+            const key = g.facetId || '_none';
+            if (!byFacet.has(key)) byFacet.set(key, []);
+            byFacet.get(key).push(g);
+        });
+
+        byFacet.forEach((goals, facetId) => {
+            const facet = appData.facets.find(f => f.id === facetId);
+            const heading = document.createElement('div');
+            heading.className = 'tl-facet';
+            heading.textContent = facet ? facet.title : 'Other';
+            heading.style.color = (facet && facet.color) || 'var(--color-text-muted)';
+            chart.appendChild(heading);
+
+            goals.forEach(g => {
+                const s = +new Date(g.start_date);
+                const e = +new Date(g.deadline);
+                const left = pos(Math.min(s, e));
+                const width = Math.max(pos(Math.max(s, e)) - left, 1.5);
+
+                const ticks = (g.milestones || []).filter(m => m.target_date).map(m => {
+                    const p = (pos(+new Date(m.target_date)) - left) / width * 100;
+                    if (p < 0 || p > 100) return '';
+                    return `<span class="tl-tick${m.done ? ' done' : ''}" style="left:${p}%" title="${m.title} · ${m.target_date}"></span>`;
+                }).join('');
+
+                const row = document.createElement('div');
+                row.className = 'tl-row';
+                row.innerHTML = `
+          <div class="tl-bar" style="left:${left}%; width:${width}%; background:${(facet && facet.color) || '#888'}">
+            ${ticks}<span class="tl-label">${g.title}</span>
+          </div>`;
+                row.onclick = () => { currentView = { level: 2, contextId: g.id }; render(); };
+                chart.appendChild(row);
+            });
+        });
+
+        wrap.appendChild(chart);
+    }
+
+    if (undated.length > 0) {
+        const det = document.createElement('details');
+        det.className = 'collapsed-group';
+        det.innerHTML = `<summary>Needs dates (${undated.length})</summary>`;
+        undated.forEach(g => {
+            const facet = appData.facets.find(f => f.id === g.facetId);
+            const row = document.createElement('div');
+            row.className = 'list-item';
+            row.innerHTML = `<span class="icon">🎯</span><div style="flex:1"><div>${g.title}</div><div class="item-meta">${facet ? facet.title + ' — ' : ''}add a start date &amp; deadline to plot</div></div>`;
+            row.onclick = () => openGoalEditor({}, g);
+            det.appendChild(row);
+        });
+        wrap.appendChild(det);
+    }
+
+    container.appendChild(wrap);
 }
 
 // --- View: Weekly Review ---

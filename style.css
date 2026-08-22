@@ -501,6 +501,98 @@ details.collapsed-group[open] summary {
   color: white;
 }
 
+/* Timeline */
+.timeline {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 8px 0 16px;
+  overflow: hidden;
+}
+
+.tl-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px 8px;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.tl-today {
+  position: absolute;
+  top: 26px;
+  bottom: 10px;
+  width: 2px;
+  background: #e74c3c;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.tl-today span {
+  position: absolute;
+  top: -16px;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #e74c3c;
+  white-space: nowrap;
+}
+
+.tl-facet {
+  padding: 10px 10px 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tl-row {
+  position: relative;
+  height: 30px;
+  margin: 4px 0;
+  cursor: pointer;
+}
+
+.tl-bar {
+  position: absolute;
+  top: 4px;
+  height: 22px;
+  border-radius: 11px;
+  min-width: 12px;
+  opacity: 0.9;
+}
+
+.tl-label {
+  position: absolute;
+  left: 10px;
+  top: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.tl-tick {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+.tl-tick.done {
+  background: var(--color-text-main);
+  border-color: white;
+}
+
 /* Milestone editor rows */
 .ms-row {
   display: flex;
