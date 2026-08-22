@@ -37,9 +37,30 @@ function saveData() {
 
 // --- Navigation State ---
 let currentView = {
-    level: 0, // 0=Daily, 1=Facet, 2=Goal
-    contextId: null // facetId or goalId
+    level: 0, // 0=Daily, 'mode'=Mode overview, 1=Facet, 2=Goal
+    contextId: null // modeId, facetId or goalId
 };
+
+// Navigation helpers (globals, also used by inline onclick handlers)
+function goHome() {
+    currentView = { level: 0, contextId: null };
+    render();
+}
+
+function goToMode(modeId) {
+    currentView = { level: 'mode', contextId: modeId };
+    render();
+}
+
+function goToFacet(facetId) {
+    currentView = { level: 1, contextId: facetId };
+    render();
+}
+
+function openItemEditorById(itemId) {
+    const item = appData.items.find(i => i.id === itemId);
+    if (item) openItemEditor(item);
+}
 
 // --- Initialization ---
 function init() {
@@ -67,6 +88,7 @@ function isRitualDue(item, dateObj) {
     if (item.recurrence === 'weekdays' && !['saturday', 'sunday'].includes(dayName)) return true;
     if (item.recurrence === 'weekends' && ['saturday', 'sunday'].includes(dayName)) return true;
     if (item.recurrence === dayName) return true; // e.g. "monday"
+    if (item.recurrence === 'weekly') return dayName === 'monday'; // legacy option from old editor: treat as every Monday
 
     return false;
 }
@@ -176,12 +198,12 @@ function renderItemCard(item, dateStr) {
     const completed = isItemCompleted(item.id, dateStr);
     if (completed) div.classList.add('completed');
 
-    // Metadata lookups
-    const goal = appData.goals.find(g => g.id === item.goalId) || { title: 'Unknown Goal' };
-    const facet = appData.facets.find(f => f.id === goal.facetId) || { title: '', color: '#ccc' };
+    // Metadata lookups (items may have no goal)
+    const goal = appData.goals.find(g => g.id === item.goalId) || null;
+    const facet = goal ? (appData.facets.find(f => f.id === goal.facetId) || null) : null;
 
     // Visuals
-    div.style.borderLeft = `4px solid ${facet.color || '#ccc'}`;
+    div.style.borderLeft = `4px solid ${(facet && facet.color) || '#ccc'}`;
 
     const checkbox = document.createElement('div');
     checkbox.className = 'checkbox';
@@ -191,11 +213,15 @@ function renderItemCard(item, dateStr) {
         toggleItemCompletion(item.id, dateStr);
     };
 
+    const metaParts = [];
+    if (facet) metaParts.push(facet.title);
+    if (goal) metaParts.push(goal.title);
+
     const content = document.createElement('div');
     content.className = 'content';
     content.innerHTML = `
     <div class="item-title">${item.title}</div>
-    <div class="item-meta">${facet.title} • ${goal.title}</div>
+    <div class="item-meta">${metaParts.join(' • ')}</div>
   `;
     // Click content to edit/details
     content.onclick = () => openItemEditor(item);
@@ -241,11 +267,11 @@ function showFacetsList(modeId) {
 function renderFacetView(container, facetId) {
     // Level 1
     const facet = appData.facets.find(f => f.id === facetId);
-    if (!facet) return renderDailyView(); // Safety
+    if (!facet) return goHome(); // Safety
 
     container.innerHTML = `
     <header class="view-header" style="background-color: ${facet.color}20;">
-      <button onclick="renderDailyView()">← Back</button>
+      <button onclick="goHome()">← Back</button>
       <h1>${facet.title}</h1>
     </header>
   `;
@@ -280,17 +306,17 @@ function renderFacetView(container, facetId) {
 function renderGoalView(container, goalId) {
     // Level 2
     const goal = appData.goals.find(g => g.id === goalId);
-    if (!goal) return renderDailyView();
+    if (!goal) return goHome();
 
     const facet = appData.facets.find(f => f.id === goal.facetId);
 
     container.innerHTML = `
-        < header class="view-header" >
-      <button onclick="currentView={level:1, contextId:'${goal.facetId}'}; render()">← ${facet.title}</button>
+    <header class="view-header">
+      <button onclick="goToFacet('${goal.facetId}')">← ${facet ? facet.title : 'Back'}</button>
       <h1>${goal.title}</h1>
       <div class="meta">Deadline: ${goal.deadline || 'None'}</div>
-    </header >
-        `;
+    </header>
+  `;
 
     // Container for lists
     const listContainer = document.createElement('div');
@@ -313,16 +339,16 @@ function renderGoalView(container, goalId) {
                 : (item.scheduled_date ? `📅 ${item.scheduled_date} ` : 'Unscheduled');
 
             return `
-        < div class="list-item" onclick = "openItemEditor(appData.items.find(i=>i.id==='${item.id}'))" >
+        <div class="list-item" onclick="openItemEditorById('${item.id}')">
            <div style="flex:1">
              <div>${item.title}</div>
              <div class="item-meta">${meta}</div>
            </div>
            <div style="font-size:0.8rem; color:#aaa">✎</div>
-        </div > `;
+        </div>`;
         }).join('');
 
-        return `< h3 style = "padding:16px 16px 8px; font-size:0.9rem; color:#666; text-transform:uppercase; letter-spacing:1px" > ${title}</h3 > ${itemsHtml} `;
+        return `<h3 style="padding:16px 16px 8px; font-size:0.9rem; color:#666; text-transform:uppercase; letter-spacing:1px">${title}</h3>${itemsHtml}`;
     };
 
     listContainer.innerHTML =
@@ -344,8 +370,6 @@ function renderGoalView(container, goalId) {
 }
 
 
-// --- Onboarding (Simplified) ---
-// --- Onboarding (Simplified) ---
 // --- Onboarding (Wizard) ---
 function renderOnboarding() {
     const appDiv = document.getElementById('app');
@@ -540,6 +564,7 @@ function renderModal(title, contentHtml, onSave) {
             render();
         }
     };
+    return modal;
 }
 
 // --- Editors ---
@@ -548,84 +573,65 @@ function openItemEditor(item = null, prefill = {}) {
     const titleVal = isEditing ? item.title : '';
     const typeVal = isEditing ? item.type : (prefill.type || 'task');
     const dateVal = isEditing ? (item.scheduled_date || '') : (prefill.scheduled_date || new Date().toLocaleDateString('en-CA'));
-    const recurVal = isEditing ? (item.recurrence || 'none') : 'none';
-    const goalIdVal = isEditing ? item.goalId : (prefill.goalId || '');
+    const recurVal = isEditing ? (item.recurrence || 'daily') : 'daily';
+    const goalIdVal = isEditing ? (item.goalId || '') : (prefill.goalId || '');
 
-    // Goal Selector Options
-    const goalOpts = appData.goals.map(g => `<option value="${g.id}" ${g.id === goalIdVal ? 'selected' : ''}>${g.title}</option>`).join('');
+    const goalOpts = ['<option value="">— No goal —</option>']
+        .concat(appData.goals.map(g => `<option value="${g.id}" ${g.id === goalIdVal ? 'selected' : ''}>${g.title}</option>`))
+        .join('');
 
-    // Helper for chips
-    const renderChips = (name, opts, activeVal) => `
-    <div style="display:flex; gap:8px; margin-top:4px">
-      ${opts.map(o => `
-        <label style="flex:1; cursor:pointer">
-          <input type="radio" name="${name}" value="${o.val}" ${activeVal === o.val ? 'checked' : ''} style="display:none" onchange="this.closest('.modal-body').dataset.${name}=this.value; window.updateEditorUI()">
-          <div class="chip-select" style="padding:10px; border:1px solid #ddd; border-radius:8px; text-align:center; font-size:0.9rem; transition:all 0.2s; background:${activeVal === o.val ? '#2c3e50' : '#fff'}; color:${activeVal === o.val ? '#fff' : '#333'}">
-            ${o.label}
-          </div>
-        </label>
-      `).join('')}
-    </div>
-  `;
-
-    // We rely on re-rendering the modal content or simple DOM toggling.
-    // Let's use simple string replacement for now, but really we need a stateful render function for the modal body if we want it properly reactive.
-    // For simplicity: We will just write the HTML. The 'window.updateEditorUI' is a hack we need to implement or just use inline logic.
-    // Let's stick to inline JS in the HTML string for valid visibility toggling.
+    // Recurrence options — every value here is understood by isRitualDue()
+    const RECUR_OPTIONS = [
+        ['daily', 'Daily'],
+        ['weekdays', 'Weekdays (M-F)'],
+        ['weekends', 'Weekends'],
+        ['monday', 'Every Monday'],
+        ['tuesday', 'Every Tuesday'],
+        ['wednesday', 'Every Wednesday'],
+        ['thursday', 'Every Thursday'],
+        ['friday', 'Every Friday'],
+        ['saturday', 'Every Saturday'],
+        ['sunday', 'Every Sunday']
+    ];
+    if (recurVal === 'weekly') RECUR_OPTIONS.push(['weekly', 'Weekly (Mondays)']); // legacy value on existing items
+    const recurOpts = RECUR_OPTIONS.map(([val, label]) =>
+        `<option value="${val}" ${recurVal === val ? 'selected' : ''}>${label}</option>`).join('');
 
     const html = `
     <label>Title <input id="inp-title" type="text" value="${titleVal}" autofocus></label>
     <label>Goal <select id="inp-goal">${goalOpts}</select></label>
-    
+
     <label>Type</label>
     <div style="display:flex; gap:8px;">
       <label style="flex:1; cursor:pointer">
-        <input type="radio" name="inp-type" value="task" ${typeVal === 'task' ? 'checked' : ''} onchange="toggleGroups(this.value)">
-        <div class="chip-select-ui" style="padding:10px; border:1px solid #ddd; border-radius:8px; text-align:center; background:${typeVal === 'task' ? '#2c3e50' : '#fff'}; color:${typeVal === 'task' ? '#fff' : '#333'}">One-off</div>
+        <input type="radio" name="inp-type" value="task" ${typeVal === 'task' ? 'checked' : ''} style="display:none">
+        <div class="chip-select-ui" style="padding:10px; border:1px solid #ddd; border-radius:8px; text-align:center;">One-off</div>
       </label>
       <label style="flex:1; cursor:pointer">
-        <input type="radio" name="inp-type" value="ritual" ${typeVal === 'ritual' ? 'checked' : ''} onchange="toggleGroups(this.value)">
-        <div class="chip-select-ui" style="padding:10px; border:1px solid #ddd; border-radius:8px; text-align:center; background:${typeVal === 'ritual' ? '#2c3e50' : '#fff'}; color:${typeVal === 'ritual' ? '#fff' : '#333'}">Ritual</div>
+        <input type="radio" name="inp-type" value="ritual" ${typeVal === 'ritual' ? 'checked' : ''} style="display:none">
+        <div class="chip-select-ui" style="padding:10px; border:1px solid #ddd; border-radius:8px; text-align:center;">Ritual</div>
       </label>
     </div>
-    
-    <div id="recur-group" style="display:${typeVal === 'ritual' ? 'block' : 'none'}; margin-top:16px;">
-      <label>Recurrence</label>
-      <select id="inp-recur">
-        <option value="daily" ${recurVal === 'daily' ? 'selected' : ''}>Daily</option>
-        <option value="weekdays" ${recurVal === 'weekdays' ? 'selected' : ''}>Weekdays (M-F)</option>
-        <option value="weekly" ${recurVal === 'weekly' ? 'selected' : ''}>Weekly</option>
-      </select>
+
+    <div id="recur-group" style="display:${typeVal === 'ritual' ? 'block' : 'none'};">
+      <label>Recurrence
+        <select id="inp-recur">${recurOpts}</select>
+      </label>
     </div>
-    
-    <div id="date-group" style="display:${typeVal === 'task' ? 'block' : 'none'}; margin-top:16px;">
+
+    <div id="date-group" style="display:${typeVal === 'task' ? 'block' : 'none'};">
       <label>Schedule Date <input id="inp-date" type="date" value="${dateVal}"></label>
       <small style="color:#888; margin-top:4px; display:block">Leave empty to save for Someday</small>
     </div>
-    
-    <script>
-      function toggleGroups(val) {
-        document.getElementById('recur-group').style.display = val === 'ritual' ? 'block' : 'none';
-        document.getElementById('date-group').style.display = val === 'task' ? 'block' : 'none';
-        
-        // Update styling manually since we can't use React
-        document.querySelectorAll('.chip-select-ui').forEach(el => {
-           const input = el.previousElementSibling;
-           const checked = input.value === val;
-           el.style.background = checked ? '#2c3e50' : '#fff';
-           el.style.color = checked ? '#fff' : '#333';
-        });
-      }
-    </script>
+    ${isEditing ? '<button id="btn-delete" class="btn-secondary" style="color:#c0392b">Delete Item</button>' : ''}
   `;
 
-    renderModal(isEditing ? 'Edit Item' : 'New Item', html, (modal) => {
-        const title = modal.querySelector('#inp-title').value;
+    const modal = renderModal(isEditing ? 'Edit Item' : 'New Item', html, (m) => {
+        const title = m.querySelector('#inp-title').value.trim();
         if (!title) return false;
 
-        const goalId = modal.querySelector('#inp-goal').value;
-        // Get radio value
-        const type = modal.querySelector('input[name="inp-type"]:checked').value;
+        const goalId = m.querySelector('#inp-goal').value;
+        const type = m.querySelector('input[name="inp-type"]:checked').value;
 
         const newItem = {
             id: isEditing ? item.id : 'item_' + Date.now(),
@@ -633,8 +639,8 @@ function openItemEditor(item = null, prefill = {}) {
             type,
             goalId,
             status: isEditing ? item.status : 'active',
-            recurrence: type === 'ritual' ? modal.querySelector('#inp-recur').value : 'none',
-            scheduled_date: type === 'task' ? modal.querySelector('#inp-date').value : null,
+            recurrence: type === 'ritual' ? m.querySelector('#inp-recur').value : 'none',
+            scheduled_date: type === 'task' ? (m.querySelector('#inp-date').value || null) : null,
             deadline: ''
         };
 
@@ -645,6 +651,31 @@ function openItemEditor(item = null, prefill = {}) {
         }
         return true;
     });
+
+    // Type toggle: <script> tags inserted via innerHTML never execute, so wire it up here
+    const syncTypeUI = () => {
+        const val = modal.querySelector('input[name="inp-type"]:checked').value;
+        modal.querySelector('#recur-group').style.display = val === 'ritual' ? 'block' : 'none';
+        modal.querySelector('#date-group').style.display = val === 'task' ? 'block' : 'none';
+        modal.querySelectorAll('input[name="inp-type"]').forEach(input => {
+            const chip = input.nextElementSibling;
+            chip.style.background = input.checked ? '#2c3e50' : '#fff';
+            chip.style.color = input.checked ? '#fff' : '#333';
+        });
+    };
+    modal.querySelectorAll('input[name="inp-type"]').forEach(input => input.addEventListener('change', syncTypeUI));
+    syncTypeUI();
+
+    if (isEditing) {
+        modal.querySelector('#btn-delete').onclick = () => {
+            if (confirm(`Delete "${item.title}"? This cannot be undone.`)) {
+                appData.items = appData.items.filter(i => i.id !== item.id);
+                modal.remove();
+                saveData();
+                render();
+            }
+        };
+    }
 }
 
 function openGoalEditor(defaults = {}) {
