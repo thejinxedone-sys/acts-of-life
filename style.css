@@ -37,6 +37,40 @@ body {
   margin: 0 auto;
   min-height: 100vh;
   position: relative;
+  transform-origin: 50% 25vh;
+}
+
+/* Telescope zoom between levels */
+#app.zoom-in {
+  animation: zoomIn 0.25s ease;
+}
+
+#app.zoom-out {
+  animation: zoomOut 0.25s ease;
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.93);
+    opacity: 0.25;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes zoomOut {
+  from {
+    transform: scale(1.07);
+    opacity: 0.25;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Headers */
@@ -155,6 +189,18 @@ header h1 {
   font-size: 0.75rem;
   color: var(--color-text-muted);
   margin-top: 2px;
+}
+
+.item-meta.zoomable {
+  cursor: pointer;
+}
+
+.item-meta.zoomable:hover {
+  text-decoration: underline dotted;
+}
+
+.item-card.not-due {
+  opacity: 0.6;
 }
 
 /* Lists (Facet/Goal Views) */

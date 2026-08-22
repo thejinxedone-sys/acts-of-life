@@ -222,6 +222,30 @@ function getOverdueTasks() {
     ).sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
 }
 
+// Tasks scheduled after today, soonest first
+function getUpcomingTasks() {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    return appData.items.filter(item =>
+        item.type === 'task' &&
+        item.status !== 'archived' &&
+        !isGoalCompleted(item.goalId) &&
+        item.scheduled_date &&
+        item.scheduled_date > todayStr &&
+        !isItemCompleted(item.id, item.scheduled_date)
+    ).sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
+}
+
+// Active rituals that simply aren't due today (e.g. weekday rituals on a weekend)
+function getNotDueRituals() {
+    const today = new Date();
+    return appData.items.filter(item =>
+        item.type === 'ritual' &&
+        item.status !== 'archived' &&
+        !isGoalCompleted(item.goalId) &&
+        !isRitualDue(item, today)
+    );
+}
+
 // Unscheduled one-off tasks (the "Someday" inbox)
 function getSomedayTasks() {
     return appData.items.filter(item =>
@@ -233,9 +257,22 @@ function getSomedayTasks() {
 }
 
 // --- Rendering Switch ---
+// Zoom ladder, widest to closest: timeline/review (0) → mode (1) → facet (2) → goal (3) → today's acts (4).
+// Moving to a smaller depth = zooming out (camera pulls back); larger = zooming in.
+const VIEW_DEPTHS = { timeline: 0, review: 0, mode: 1, 1: 2, 2: 3, 0: 4 };
+let lastDepth = 4;
+
 function render() {
     const appDiv = document.getElementById('app');
+    const depth = VIEW_DEPTHS[currentView.level];
+    const dir = depth < lastDepth ? 'zoom-out' : (depth > lastDepth ? 'zoom-in' : null);
+    lastDepth = depth;
     appDiv.innerHTML = '';
+    appDiv.classList.remove('zoom-in', 'zoom-out');
+    if (dir) {
+        void appDiv.offsetWidth; // restart the CSS animation
+        appDiv.classList.add(dir);
+    }
 
     if (currentView.level === 0) {
         renderDailyView(appDiv);
@@ -283,9 +320,11 @@ function renderDailyView(container = document.getElementById('app')) {
     });
     container.appendChild(navDiv);
 
-    // Task List
+    // Task List: every act is visible somewhere on this page
     const dailyItems = getDailyItems();
     const overdue = getOverdueTasks();
+    const upcoming = getUpcomingTasks();
+    const notDueRituals = getNotDueRituals();
     const someday = getSomedayTasks();
     const listDiv = document.createElement('div');
     listDiv.className = 'daily-list';
@@ -297,24 +336,38 @@ function renderDailyView(container = document.getElementById('app')) {
         listDiv.appendChild(h);
     };
 
+    const hasOtherSections = overdue.length + upcoming.length + notDueRituals.length + someday.length > 0;
+
     if (overdue.length > 0) {
         addHeading(`Overdue (${overdue.length})`, 'overdue');
         // Completion for an overdue task is recorded against its scheduled day
         overdue.forEach(item => listDiv.appendChild(renderItemCard(item, item.scheduled_date)));
-        addHeading('Today');
     }
 
+    if (hasOtherSections) addHeading('Today');
     if (dailyItems.length === 0) {
-        listDiv.insertAdjacentHTML('beforeend', '<p class="empty-state">No acts planned for today.</p>');
+        listDiv.insertAdjacentHTML('beforeend', '<p class="empty-state">No acts due today.</p>');
     } else {
         dailyItems.forEach(item => {
             listDiv.appendChild(renderItemCard(item, todayStr));
         });
     }
 
+    if (upcoming.length > 0) {
+        addHeading('Upcoming');
+        // Checking one off early records against its scheduled day
+        upcoming.forEach(item => listDiv.appendChild(renderItemCard(item, item.scheduled_date)));
+    }
+
+    if (notDueRituals.length > 0) {
+        addHeading('Rituals · not due today');
+        notDueRituals.forEach(item => listDiv.appendChild(renderItemCard(item, todayStr)));
+    }
+
     if (someday.length > 0) {
         const det = document.createElement('details');
         det.className = 'collapsed-group';
+        det.open = true;
         det.innerHTML = `<summary>Someday (${someday.length})</summary>`;
         someday.forEach(item => det.appendChild(renderItemCard(item, todayStr)));
         listDiv.appendChild(det);
@@ -372,9 +425,13 @@ function renderItemCard(item, dateStr) {
     if (item.type === 'ritual') {
         const streak = computeStreak(item);
         if (streak > 0) metaParts.push(`🔥 ${streak}`);
+        if (!isRitualDue(item, new Date())) {
+            metaParts.push(`↻ ${item.recurrence}`);
+            div.classList.add('not-due');
+        }
     }
     const todayStr = new Date().toLocaleDateString('en-CA');
-    if (item.type === 'task' && item.scheduled_date && item.scheduled_date < todayStr) {
+    if (item.type === 'task' && item.scheduled_date && item.scheduled_date !== todayStr) {
         metaParts.unshift(`📅 ${item.scheduled_date}`);
     }
 
@@ -382,10 +439,17 @@ function renderItemCard(item, dateStr) {
     content.className = 'content';
     content.innerHTML = `
     <div class="item-title">${item.title}</div>
-    <div class="item-meta">${metaParts.join(' • ')}</div>
+    <div class="item-meta${goal ? ' zoomable' : ''}"${goal ? ' title="Zoom out to ' + goal.title + '"' : ''}>${metaParts.join(' • ')}</div>
   `;
-    // Click content to edit/details
+    // Click content to edit; click the meta line to zoom out to the item's stream
     content.onclick = () => openItemEditor(item);
+    if (goal) {
+        content.querySelector('.item-meta').onclick = (e) => {
+            e.stopPropagation();
+            currentView = { level: 2, contextId: goal.id };
+            render();
+        };
+    }
 
     div.appendChild(checkbox);
     div.appendChild(content);
@@ -651,7 +715,10 @@ function renderModeView(container, modeId) {
 
     container.innerHTML = `
     <header class="view-header">
-      <button onclick="goHome()">← Today</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; align-self:stretch">
+        <button onclick="goToTimeline()">← Timeline</button>
+        <button class="icon-btn" onclick="goHome()" title="Today's acts">⌂</button>
+      </div>
       <h1>${mode.title}</h1>
       <div class="item-meta">${MODE_TAGLINES[mode.type] || ''}</div>
     </header>
@@ -741,10 +808,14 @@ function renderFacetView(container, facetId) {
     // Level 1
     const facet = appData.facets.find(f => f.id === facetId);
     if (!facet) return goHome(); // Safety
+    const mode = appData.modes.find(m => m.id === facet.modeId);
 
     container.innerHTML = `
     <header class="view-header" style="background-color: ${facet.color}20;">
-      <button onclick="goHome()">← Back</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; align-self:stretch">
+        <button onclick="goToMode('${facet.modeId}')">← ${mode ? mode.title : 'Back'}</button>
+        <button class="icon-btn" onclick="goHome()" title="Today's acts">⌂</button>
+      </div>
       <h1>${facet.title}</h1>
     </header>
   `;
@@ -818,7 +889,10 @@ function renderGoalView(container, goalId) {
     <header class="view-header">
       <div style="display:flex; justify-content:space-between; align-items:center; align-self:stretch">
         <button onclick="goToFacet('${goal.facetId}')">← ${facet ? facet.title : 'Back'}</button>
-        <button class="icon-btn" onclick="openGoalEditorById('${goal.id}')" title="Edit goal">✎</button>
+        <div>
+          <button class="icon-btn" onclick="openGoalEditorById('${goal.id}')" title="Edit">✎</button>
+          <button class="icon-btn" onclick="goHome()" title="Today's acts">⌂</button>
+        </div>
       </div>
       <h1>${goal.title}${goal.status === 'completed' ? ' 🏁' : ''}</h1>
       <div class="meta">Deadline: ${goal.deadline || 'None'}</div>
