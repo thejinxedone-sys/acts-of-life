@@ -1,12 +1,12 @@
 {
   "name": "Acts of Life",
   "short_name": "Acts",
-  "description": "A telescope for a life — labour, work, action. After Hannah Arendt.",
+  "description": "Your days are full. Your story isn't. A private life-audit and story instrument, inspired by the work of Hannah Arendt.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f5ead8",
-  "theme_color": "#f5ead8",
+  "background_color": "#17181f",
+  "theme_color": "#17181f",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
