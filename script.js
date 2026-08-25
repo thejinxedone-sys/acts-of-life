@@ -70,6 +70,14 @@ function loadData() {
     if (!appData.principles.marks) appData.principles.marks = {};
     if (!appData.principles.notes) appData.principles.notes = {};
     if (!appData.meta) appData.meta = {};
+    if (!Array.isArray(appData.principlesList) || appData.principlesList.length === 0) {
+        appData.principlesList = PRINCIPLES.map(p => p.slice());
+    }
+}
+
+function getPrinciples() {
+    return (Array.isArray(appData.principlesList) && appData.principlesList.length)
+        ? appData.principlesList : PRINCIPLES;
 }
 
 function saveData() {
@@ -114,8 +122,17 @@ function modeTypeOfGoal(goal) {
     return m ? m.type : null;
 }
 
+function facetOfItem(item) {
+    const goal = appData.goals.find(g => g.id === item.goalId);
+    if (goal) return appData.facets.find(f => f.id === goal.facetId) || null;
+    if (item.facetId) return appData.facets.find(f => f.id === item.facetId) || null;
+    return null;
+}
+
 function modeTypeOfItem(item) {
-    return modeTypeOfGoal(appData.goals.find(g => g.id === item.goalId));
+    const facet = facetOfItem(item);
+    const m = facet ? appData.modes.find(x => x.id === facet.modeId) : null;
+    return m ? m.type : null;
 }
 
 function goalNoun(facetId) {
@@ -275,26 +292,60 @@ function getSomedayTasks() {
     );
 }
 
-// --- Navigation ---
+// --- Navigation (history-integrated: Android back walks the zoom ladder) ---
 // Zoom ladder, widest to closest: life/reflect/review (0) → stream (1) → today (2)
 let currentView = { level: 'home', contextId: null, from: null };
 let homeMode = null; // null = all of life; or 'labour' | 'work' | 'action'
 const VIEW_DEPTHS = { life: 0, reflect: 0, review: 0, stream: 1, home: 2 };
 let lastDepth = 2;
+let ignoreNextPop = false;
 
-function goHome() { currentView = { level: 'home', contextId: null }; render(); }
-function goLife() { currentView = { level: 'life', contextId: null }; render(); }
+function pushView() {
+    history.pushState({ view: currentView, homeMode }, '');
+}
+
+function goHome() { currentView = { level: 'home', contextId: null }; pushView(); render(); }
+function goLife() { currentView = { level: 'life', contextId: null }; pushView(); render(); }
 let reflectDial = 0; // index into past evenings, 0 = most recent
-function goReflect() { reflectDial = 0; currentView = { level: 'reflect', contextId: null }; render(); }
-function goReview(range) { currentView = { level: 'review', contextId: range || 'week' }; render(); }
+function goReflect() { reflectDial = 0; currentView = { level: 'reflect', contextId: null }; pushView(); render(); }
+function goReview(range) { currentView = { level: 'review', contextId: range || 'week' }; pushView(); render(); }
 function goStream(goalId, from) {
     currentView = { level: 'stream', contextId: goalId, from: from || currentView.level };
+    pushView();
     render();
 }
 function setHomeMode(type) {
-    homeMode = homeMode === type ? null : type;
+    homeMode = type;
+    currentView = { level: 'home', contextId: null };
+    pushView();
     render();
 }
+
+// The in-app back arrows and the hardware/gesture Back both pop history
+function goBack() { history.back(); }
+
+// Close a sheet; its history entry becomes a plain view entry (synchronous —
+// calling history.back() here races with any pushState that follows)
+function closeModal(modal) {
+    modal.remove();
+    if (history.state && history.state.sheet) {
+        history.replaceState({ view: currentView, homeMode }, '');
+    }
+}
+
+window.addEventListener('popstate', (e) => {
+    if (ignoreNextPop) { ignoreNextPop = false; return; }
+    const open = document.querySelector('.modal-overlay');
+    if (open) { open.remove(); return; }
+    const s = e.state;
+    if (s && s.view) {
+        currentView = s.view;
+        homeMode = s.homeMode !== undefined ? s.homeMode : null;
+    } else {
+        currentView = { level: 'home', contextId: null };
+    }
+    render();
+});
 
 function openItemEditorById(itemId) {
     const item = appData.items.find(i => i.id === itemId);
@@ -331,8 +382,8 @@ function renderActRow(item, dateStr, opts = {}) {
     const ts = todayStr();
     const done = isItemCompleted(item.id, dateStr);
     const goal = appData.goals.find(g => g.id === item.goalId) || null;
-    const facet = goal ? (appData.facets.find(f => f.id === goal.facetId) || null) : null;
-    const mtype = goal ? modeTypeOfGoal(goal) : null;
+    const facet = facetOfItem(item);
+    const mtype = modeTypeOfItem(item);
     const color = mtype ? MODE_META[mtype].c : 'var(--ink-soft)';
 
     const metaParts = [];
@@ -373,6 +424,7 @@ function renderActRow(item, dateStr, opts = {}) {
     main.querySelector('.act-meta').onclick = (e) => {
         e.stopPropagation();
         if (goal) goStream(goal.id, 'home');
+        else if (mtype) setHomeMode(mtype);
         else goLife();
     };
 
@@ -422,37 +474,53 @@ function renderHome(container) {
     pad.appendChild(head);
     head.querySelector('#btn-info').onclick = openPhilosophy;
 
-    // Mode glyph filter
+    // View switcher: Today (the ground) | the three aspects of life
     const glyphRow = document.createElement('div');
     glyphRow.style.cssText = 'display:flex;gap:10px;align-items:center';
+
+    const todayBtn = document.createElement('button');
+    todayBtn.textContent = 'Today';
+    todayBtn.style.cssText = `height:44px;padding:0 18px;border-radius:999px;cursor:pointer;font:600 13px var(--font-body);${homeMode === null
+        ? 'background:var(--ink);color:var(--ground);border:1px solid transparent'
+        : 'background:transparent;color:var(--ink-soft);border:1px solid rgba(32,30,29,.13)'}`;
+    todayBtn.onclick = () => setHomeMode(null);
+    glyphRow.appendChild(todayBtn);
+
+    glyphRow.insertAdjacentHTML('beforeend',
+        '<span style="width:1px;height:26px;background:var(--edge-strong);flex:none"></span>');
+
     ['labour', 'work', 'action'].forEach(type => {
         const b = document.createElement('button');
         b.className = 'glyph-btn';
         b.title = MODE_META[type].word;
         if (homeMode === type) {
             b.style.background = MODE_META[type].tint;
-            b.style.borderColor = 'transparent';
+            b.style.border = `1.5px solid ${MODE_META[type].c}`;
         }
         b.innerHTML = glyph(type, 19, type === 'action' ? 'animation:starIgnite 5s ease-in-out infinite' : '');
         b.onclick = () => setHomeMode(type);
         glyphRow.appendChild(b);
     });
     glyphRow.insertAdjacentHTML('beforeend',
-        `<span style="flex:1"></span><span style="font:11px/1.4 var(--font-body);color:var(--ink-faint);font-style:italic;text-align:right;max-width:150px">${esc(M ? M.tagline : 'labour · work · action')}</span>`);
+        `<span style="flex:1"></span><span style="font:11px/1.4 var(--font-body);color:var(--ink-faint);font-style:italic;text-align:right;max-width:130px">${esc(M ? M.tagline : 'the acts of the day')}</span>`);
     pad.appendChild(glyphRow);
 
-    // Principle of the day
-    const pd = principleOfDayIndex();
-    const pCard = document.createElement('div');
-    pCard.style.cssText = 'background:var(--star-tint);border-radius:22px;padding:14px 18px;display:flex;gap:13px;align-items:flex-start;cursor:pointer;position:relative';
-    pCard.innerHTML = `
+    // Principle of the day (can be hidden in settings)
+    const plist = getPrinciples();
+    if (appData.meta.showPrinciple !== false && plist.length > 0) {
+        const pd = principleOfDayIndex();
+        const period = (appData.meta.principleFreq || 'daily') === 'weekly' ? 'week' : 'day';
+        const pCard = document.createElement('div');
+        pCard.style.cssText = 'background:var(--star-tint);border-radius:22px;padding:14px 18px;display:flex;gap:13px;align-items:flex-start;cursor:pointer;position:relative';
+        pCard.innerHTML = `
     ${starSVG(17, 'oklch(48% 0.09 320)', null, 'margin-top:2px;animation:starIgnite 5s ease-in-out infinite')}
-    <div style="flex:1"><div class="kicker" style="font-size:9.5px;letter-spacing:.13em;color:var(--star-ink);margin-bottom:3px">Principle of the day · ${pd + 1} of 5</div>
-    <div style="font-family:var(--font-display);font-size:16px;line-height:1.2;color:var(--ink)">${PRINCIPLES[pd][0]}</div>
-    <div style="font:12px/1.45 var(--font-body);color:var(--ink-soft);margin-top:2px">${PRINCIPLES[pd][1]}</div></div>
+    <div style="flex:1"><div class="kicker" style="font-size:9.5px;letter-spacing:.13em;color:var(--star-ink);margin-bottom:3px">Principle of the ${period} · ${pd + 1} of ${plist.length}</div>
+    <div style="font-family:var(--font-display);font-size:16px;line-height:1.2;color:var(--ink)">${esc(plist[pd][0])}</div>
+    <div style="font:12px/1.45 var(--font-body);color:var(--ink-soft);margin-top:2px">${esc(plist[pd][1] || '')}</div></div>
     <span style="font:11px var(--font-meta);color:oklch(48% 0.09 320);margin-top:2px">↗</span>`;
-    pCard.onclick = goReflect;
-    pad.appendChild(pCard);
+        pCard.onclick = goReflect;
+        pad.appendChild(pCard);
+    }
 
     // Sections
     const overdue = filt(getOverdueTasks());
@@ -588,6 +656,17 @@ function renderHome(container) {
             };
             list.appendChild(row);
         });
+        const addStream = document.createElement('button');
+        addStream.className = 'btn-text';
+        addStream.textContent = homeMode === 'work' ? '＋ new stream' : '＋ new initiative';
+        addStream.onclick = () => {
+            const f = appData.facets.find(x => {
+                const m = appData.modes.find(md => md.id === x.modeId);
+                return m && m.type === homeMode;
+            });
+            openGoalEditor({ facetId: f ? f.id : undefined });
+        };
+        list.appendChild(addStream);
         wrap.appendChild(list);
         pad.appendChild(wrap);
     }
@@ -598,7 +677,8 @@ function renderHome(container) {
     const fab = document.createElement('button');
     fab.className = 'fab';
     fab.textContent = '+';
-    fab.onclick = openQuickAdd;
+    fab.title = 'Add an act';
+    fab.onclick = () => openItemEditor(null, { homeModePref: homeMode });
     fabRow.appendChild(fab);
     pad.appendChild(fabRow);
 
@@ -618,7 +698,7 @@ function renderHome(container) {
     util.style.cssText = 'display:flex;justify-content:flex-end;gap:16px';
     util.innerHTML = `
     <span id="lnk-review" style="font:600 9px var(--font-meta);letter-spacing:.14em;text-transform:uppercase;color:rgba(32,30,29,.4);cursor:pointer">rhythm →</span>
-    <span id="lnk-backup" style="font:600 9px var(--font-meta);letter-spacing:.14em;text-transform:uppercase;color:rgba(32,30,29,.4);cursor:pointer">backup →</span>`;
+    <span id="lnk-backup" style="font:600 9px var(--font-meta);letter-spacing:.14em;text-transform:uppercase;color:rgba(32,30,29,.4);cursor:pointer">settings →</span>`;
     util.querySelector('#lnk-review').onclick = () => goReview('week');
     util.querySelector('#lnk-backup').onclick = openDataModal;
     pad.appendChild(util);
@@ -635,15 +715,22 @@ function fmtMonth(dateStr) {
 }
 
 function principleOfDayIndex() {
+    const n = Math.max(getPrinciples().length, 1);
     const now = new Date();
     const start = new Date(now.getFullYear(), 0, 0);
     const doy = Math.floor((now - start) / 864e5);
-    return doy % 5;
+    if ((appData.meta.principleFreq || 'daily') === 'weekly') return Math.floor(doy / 7) % n;
+    return doy % n;
 }
+
+let lifeZoom = 'fit'; // 'fit' | '3m' | '6m' | 'year'
 
 function lifeRange() {
     const DAY = 864e5;
     const today = +new Date(todayStr());
+    if (lifeZoom === '3m') return { min: today - 30 * DAY, max: today + 61 * DAY, today };
+    if (lifeZoom === '6m') return { min: today - 61 * DAY, max: today + 122 * DAY, today };
+    if (lifeZoom === 'year') return { min: today - 122 * DAY, max: today + 244 * DAY, today };
     let min = today - 45 * DAY;
     let max = today + 90 * DAY;
     appData.goals.filter(g => g.status !== 'completed' && g.start_date && g.deadline).forEach(g => {
@@ -724,7 +811,7 @@ function renderStream(container, goalId) {
       <button id="st-life" class="icon-round" title="Zoom out to life"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.5-4.5M8 11h6"></path></svg></button>
     </div>`;
     pad.appendChild(head);
-    head.querySelector('#st-back').onclick = () => (currentView.from === 'life' ? goLife() : goHome());
+    head.querySelector('#st-back').onclick = goBack;
     head.querySelector('#st-edit').onclick = () => openGoalEditor({}, goal);
     head.querySelector('#st-life').onclick = goLife;
 
@@ -872,8 +959,22 @@ function renderLife(container) {
     <h1 class="display" style="font-size:29px;color:var(--space-ink)">Behind you, ahead of you</h1>
     <div style="font:13px/1.5 var(--font-body);color:var(--space-ink-55);margin-top:6px">The trail of acts laid down, and the arcs still opening.</div></div>
     <button id="life-close" class="icon-round" title="Zoom back in"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.5-4.5M11 8v6M8 11h6"></path></svg></button>`;
-    head.querySelector('#life-close').onclick = goHome;
+    head.querySelector('#life-close').onclick = goBack;
     pad.appendChild(head);
+
+    // Zoom the horizon: how much of time to hold in view
+    const zoomRow = document.createElement('div');
+    zoomRow.style.cssText = 'display:flex;gap:8px';
+    [['3m', '3 months'], ['6m', '6 months'], ['year', 'Year'], ['fit', 'Everything']].forEach(([key, label]) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.style.cssText = `padding:6px 14px;border-radius:999px;font:600 11.5px var(--font-body);cursor:pointer;${lifeZoom === key
+            ? 'background:var(--space-ink);color:var(--space-ground);border:1px solid transparent'
+            : 'background:transparent;color:var(--space-ink-55);border:1px solid rgba(245,234,216,.2)'}`;
+        b.onclick = () => { lifeZoom = key; render(); };
+        zoomRow.appendChild(b);
+    });
+    pad.appendChild(zoomRow);
 
     // Month axis + stream rows
     const monthMarks = [];
@@ -904,19 +1005,24 @@ function renderLife(container) {
     dated.forEach(g => {
         const mt = modeTypeOfGoal(g) || 'work';
         const s = +new Date(g.start_date), e = +new Date(g.deadline);
-        const l = pos(Math.min(s, e)), w = Math.max(pos(Math.max(s, e)) - l, 1.5);
+        // Clamp the bar to the visible window; skip goals fully outside it
+        const lRaw = pos(Math.min(s, e));
+        const rRaw = Math.max(pos(Math.max(s, e)), lRaw + 1.5);
+        const l = Math.max(lRaw, 0), rr = Math.min(rRaw, 100);
+        if (rr <= 0 || l >= 100) return;
+        const w = rr - l;
+        const ticks = (g.milestones || []).filter(m => m.target_date).map(m => {
+            const abs = pos(+new Date(m.target_date));
+            if (abs < l || abs > rr) return '';
+            const p = ((abs - l) / w * 100);
+            return `<span title="${esc(m.title)}" style="position:absolute;left:${p.toFixed(1)}%;top:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;box-sizing:border-box;${m.done ? `background:${MODE_META[mt].bright};border:2px solid var(--space-ground)` : `background:var(--space-ground);border:2px solid ${MODE_META[mt].bright}`}"></span>`;
+        }).join('');
         const row = document.createElement('div');
         row.style.cssText = 'display:flex;align-items:center';
-        const ticks = (g.milestones || []).filter(m => m.target_date).map(m => {
-            const p = ((pos(+new Date(m.target_date)) - l) / w * 100);
-            if (p < 0 || p > 100) return '';
-            return `<span title="${esc(m.title)}" style="position:absolute;left:${p.toFixed(1)}%;top:3px;width:8px;height:8px;border-radius:50%;${m.done ? `background:${MODE_META[mt].bright};border:2px solid var(--space-ground)` : `background:var(--space-ground);border:2px solid ${MODE_META[mt].bright}`}"></span>`;
-        }).join('');
         row.innerHTML = `
       <span class="lr-name" style="width:86px;flex:none;font:600 11px var(--font-body);color:var(--space-ink-75);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(g.title)} ↗</span>
       <span style="flex:1;position:relative;height:14px">
-        <span style="position:absolute;left:${l.toFixed(1)}%;width:${w.toFixed(1)}%;top:4px;height:6px;border-radius:3px;background:${MODE_META[mt].bright};opacity:.8"></span>
-        ${ticks}
+        <span style="position:absolute;left:${l.toFixed(1)}%;width:${w.toFixed(1)}%;top:4px;height:6px;border-radius:3px;background:${MODE_META[mt].bright};opacity:.8">${ticks}</span>
       </span>`;
         row.querySelector('.lr-name').onclick = () => goStream(g.id, 'life');
         rowsWrap.appendChild(row);
@@ -955,7 +1061,8 @@ function renderLife(container) {
     });
     for (const lf of labourFacets) {
         const goalIds = appData.goals.filter(g => g.facetId === lf.id).map(g => g.id);
-        const rituals = appData.items.filter(i => i.type === 'ritual' && i.status !== 'archived' && goalIds.includes(i.goalId));
+        const rituals = appData.items.filter(i => i.type === 'ritual' && i.status !== 'archived' &&
+            (goalIds.includes(i.goalId) || i.facetId === lf.id));
         if (rituals.length === 0) continue;
         const best = Math.max(...rituals.map(computeStreak));
         const loopCard = document.createElement('div');
@@ -1056,19 +1163,19 @@ function renderReflect(container) {
     <h1 class="display" style="font-size:29px;color:var(--space-ink)">Did you act today?</h1>
     <div style="font:13px/1.5 var(--font-body);color:var(--space-ink-55);margin-top:6px">Mark each principle you lived, however small the act.</div></div>
     <button id="rf-close" class="icon-round" style="font-size:14px">×</button>`;
-    head.querySelector('#rf-close').onclick = goHome;
+    head.querySelector('#rf-close').onclick = goBack;
     pad.appendChild(head);
 
     const list = document.createElement('div');
     list.style.cssText = 'display:flex;flex-direction:column;gap:8px';
-    PRINCIPLES.forEach((p, i) => {
+    getPrinciples().forEach((p, i) => {
         const on = !!marks[i];
         const row = document.createElement('div');
         row.style.cssText = `display:flex;align-items:center;gap:14px;padding:13px 16px;border-radius:20px;cursor:pointer;${on ? 'background:rgba(246,160,107,.12);border:1px solid rgba(246,160,107,.25)' : 'background:transparent;border:1px solid var(--space-edge)'}`;
         row.innerHTML = `
       ${starSVG(20, on ? '#f6a06b' : 'none', on ? null : 'rgba(245,234,216,.35)')}
-      <div style="flex:1"><div style="font:600 14px/1.25 var(--font-body);color:${on ? 'var(--space-ink)' : 'var(--space-ink-75)'}">${p[0]}</div>
-      <div style="font:11.5px/1.4 var(--font-body);color:rgba(245,234,216,.45)">${p[1]}</div></div>`;
+      <div style="flex:1"><div style="font:600 14px/1.25 var(--font-body);color:${on ? 'var(--space-ink)' : 'var(--space-ink-75)'}">${esc(p[0])}</div>
+      <div style="font:11.5px/1.4 var(--font-body);color:rgba(245,234,216,.45)">${esc(p[1] || '')}</div></div>`;
         row.onclick = () => {
             if (!appData.principles.marks[ts]) appData.principles.marks[ts] = {};
             appData.principles.marks[ts][i] = !appData.principles.marks[ts][i];
@@ -1110,6 +1217,13 @@ function renderReflect(container) {
     <div style="display:flex;gap:14px;align-items:flex-end">${dotsHtml}</div>`;
     pad.appendChild(week);
 
+    const editLink = document.createElement('button');
+    editLink.className = 'btn-text';
+    editLink.style.cssText = 'color:var(--ember-bright);font:600 11px var(--font-meta);letter-spacing:.1em;text-transform:uppercase;text-align:right;padding:0';
+    editLink.textContent = 'edit your principles →';
+    editLink.onclick = openPrinciplesEditor;
+    pad.appendChild(editLink);
+
     // Past evenings — a dial through what you wrote before
     const pastDates = Array.from(new Set(
         Object.keys(appData.principles.marks).concat(Object.keys(appData.principles.notes))
@@ -1123,7 +1237,7 @@ function renderReflect(container) {
         reflectDial = Math.min(reflectDial, pastDates.length - 1);
         const d = pastDates[reflectDial];
         const dm = appData.principles.marks[d] || {};
-        const lived = PRINCIPLES.filter((p, i) => dm[i]).map(p => p[0]);
+        const lived = getPrinciples().filter((p, i) => dm[i]).map(p => p[0]);
         const noteTxt = (appData.principles.notes[d] || '').trim();
         const dObj = new Date(d);
         const dLabel = dObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short' }) + ' ' + dObj.getDate();
@@ -1140,7 +1254,7 @@ function renderReflect(container) {
         </span>
       </div>
       ${lived.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:${noteTxt ? '8px' : '0'}">${lived.map(n =>
-            `<span style="display:inline-flex;align-items:center;gap:5px;font:10px var(--font-meta);color:var(--ember-bright)">${starSVG(9, '#f6a06b')}${n}</span>`).join('')}</div>` : ''}
+            `<span style="display:inline-flex;align-items:center;gap:5px;font:10px var(--font-meta);color:var(--ember-bright)">${starSVG(9, '#f6a06b')}${esc(n)}</span>`).join('')}</div>` : ''}
       ${noteTxt ? `<div style="font:12px/1.5 var(--font-body);color:var(--space-ink-55);font-style:italic">"${esc(noteTxt)}"</div>` : ''}`;
         dial.querySelector('#dial-prev').onclick = () => { reflectDial++; render(); };
         dial.querySelector('#dial-next').onclick = () => { reflectDial--; render(); };
@@ -1150,7 +1264,7 @@ function renderReflect(container) {
     const close = document.createElement('button');
     close.className = 'btn-ember';
     close.textContent = 'Close the day';
-    close.onclick = goHome;
+    close.onclick = goBack;
     pad.appendChild(close);
 
     screen.appendChild(pad);
@@ -1176,7 +1290,7 @@ function renderReview(container) {
     <h1 class="display" style="font-size:29px;color:var(--space-ink)">${range === 'month' ? 'The month turning' : 'The week turning'}</h1>
     <div style="font:13px/1.5 var(--font-body);color:var(--space-ink-55);margin-top:6px">Ritual consistency, last ${numDays} days.</div></div>
     <button id="rv-close" class="icon-round" style="font-size:14px">×</button>`;
-    head.querySelector('#rv-close').onclick = goHome;
+    head.querySelector('#rv-close').onclick = goBack;
     pad.appendChild(head);
 
     const toggle = document.createElement('div');
@@ -1205,8 +1319,7 @@ function renderReview(container) {
     // Group by facet
     const groups = new Map();
     rituals.forEach(item => {
-        const goal = appData.goals.find(g => g.id === item.goalId);
-        const facet = goal ? appData.facets.find(f => f.id === goal.facetId) : null;
+        const facet = facetOfItem(item);
         const key = facet ? facet.id : '_other';
         if (!groups.has(key)) groups.set(key, { facet, items: [] });
         groups.get(key).items.push(item);
@@ -1264,11 +1377,12 @@ function renderModal(title, contentHtml, onSave, saveLabel = 'Save') {
       </div>
     </div>`;
     document.body.appendChild(modal);
-    modal.querySelector('.close-btn').onclick = () => modal.remove();
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    history.pushState({ view: currentView, homeMode, sheet: true }, '');
+    modal.querySelector('.close-btn').onclick = () => closeModal(modal);
+    modal.onclick = (e) => { if (e.target === modal) closeModal(modal); };
     modal.querySelector('.btn-save').onclick = () => {
         if (onSave(modal)) {
-            modal.remove();
+            closeModal(modal);
             saveData();
             render();
         }
@@ -1276,97 +1390,58 @@ function renderModal(title, contentHtml, onSave, saveLabel = 'Save') {
     return modal;
 }
 
-// --- Quick add sheet (FAB on home) ---
-function openQuickAdd() {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    let draftType = 'act';
-    let when = 'today';
-    modal.innerHTML = `
-    <div class="modal-card">
-      <span class="sheet-handle"></span>
-      <div style="display:flex;gap:8px">
-        <button id="qa-act" class="seg-btn on">Act — one thing today</button>
-        <button id="qa-stream" class="seg-btn">Stream — a path to extend</button>
-      </div>
-      <div>
-        <div id="qa-label" style="font:600 9.5px var(--font-meta);letter-spacing:.13em;color:rgba(32,30,29,.45);text-transform:uppercase;margin-bottom:6px">A single act</div>
-        <input id="qa-title" type="text" placeholder="What will you do?">
-      </div>
-      <div id="qa-when" style="display:flex;align-items:center;gap:10px">
-        <span style="font:600 9.5px var(--font-meta);letter-spacing:.13em;color:rgba(32,30,29,.45);text-transform:uppercase">When</span>
-        <span id="qa-today" style="padding:5px 12px;border-radius:999px;background:var(--surface-sunken);font:600 11px var(--font-body);color:var(--ink-soft);cursor:pointer">Today</span>
-        <span id="qa-someday" style="padding:5px 12px;border-radius:999px;border:1px solid rgba(32,30,29,.13);font:600 11px var(--font-body);color:var(--ink-faint);cursor:pointer">Someday</span>
-        <span style="flex:1"></span>
-        <span style="font:11px var(--font-meta);color:var(--ink-faint)">details later, on its card</span>
-      </div>
-      <button id="qa-add" class="btn-save">Add to today</button>
-    </div>`;
-    document.body.appendChild(modal);
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-
-    const sync = () => {
-        modal.querySelector('#qa-act').className = 'seg-btn' + (draftType === 'act' ? ' on' : '');
-        modal.querySelector('#qa-stream').className = 'seg-btn' + (draftType === 'stream' ? ' on' : '');
-        modal.querySelector('#qa-label').textContent = draftType === 'act' ? 'A single act' : 'A new stream';
-        modal.querySelector('#qa-title').placeholder = draftType === 'act' ? 'What will you do?' : 'Name the path — e.g. Learn to sail';
-        modal.querySelector('#qa-when').style.display = draftType === 'act' ? 'flex' : 'none';
-        modal.querySelector('#qa-add').textContent = draftType === 'act' ? (when === 'today' ? 'Add to today' : 'Add to someday') : 'Open the stream';
-        modal.querySelector('#qa-today').style.cssText = `padding:5px 12px;border-radius:999px;font:600 11px var(--font-body);cursor:pointer;${when === 'today' ? 'background:var(--surface-sunken);color:var(--ink-soft)' : 'border:1px solid rgba(32,30,29,.13);color:var(--ink-faint)'}`;
-        modal.querySelector('#qa-someday').style.cssText = `padding:5px 12px;border-radius:999px;font:600 11px var(--font-body);cursor:pointer;${when === 'someday' ? 'background:var(--surface-sunken);color:var(--ink-soft)' : 'border:1px solid rgba(32,30,29,.13);color:var(--ink-faint)'}`;
-    };
-    modal.querySelector('#qa-act').onclick = () => { draftType = 'act'; sync(); };
-    modal.querySelector('#qa-stream').onclick = () => { draftType = 'stream'; sync(); };
-    modal.querySelector('#qa-today').onclick = () => { when = 'today'; sync(); };
-    modal.querySelector('#qa-someday').onclick = () => { when = 'someday'; sync(); };
-    modal.querySelector('#qa-title').focus();
-
-    modal.querySelector('#qa-add').onclick = () => {
-        const t = modal.querySelector('#qa-title').value.trim();
-        if (!t) { modal.remove(); return; }
-        if (draftType === 'act') {
-            appData.items.push({
-                id: 'item_' + Date.now(), title: t, type: 'task', goalId: '', milestoneId: null,
-                status: 'active', recurrence: 'none',
-                scheduled_date: when === 'today' ? todayStr() : null, deadline: ''
-            });
-            saveData();
-            modal.remove();
-            render();
-        } else {
-            let facet = appData.facets.find(f => {
-                const m = appData.modes.find(x => x.id === f.modeId);
-                return m && m.type === 'work';
-            });
-            if (!facet) {
-                facet = { id: 'facet_' + Date.now(), title: 'Craft', modeId: 'mode_line' };
-                appData.facets.push(facet);
-            }
-            const goal = {
-                id: 'goal_' + Date.now(), title: t, icon: '', status: 'active',
-                facetId: facet.id, start_date: '', deadline: '', milestones: []
-            };
-            appData.goals.push(goal);
-            saveData();
-            modal.remove();
-            goStream(goal.id, 'home');
-        }
-    };
-    sync();
+// First work-mode area, created on demand — new streams land here by default
+function defaultWorkFacet() {
+    let facet = appData.facets.find(f => {
+        const m = appData.modes.find(x => x.id === f.modeId);
+        return m && m.type === 'work';
+    });
+    if (!facet) {
+        facet = { id: 'facet_' + Date.now(), title: 'Craft', modeId: 'mode_line' };
+        appData.facets.push(facet);
+        saveData();
+    }
+    return facet;
 }
 
-// --- Item editor (full) ---
+// --- Item editor (full, one flow: what · kind · when · where · phase) ---
 function openItemEditor(item = null, prefill = {}) {
     const isEditing = !!item && !!item.id;
     const titleVal = isEditing ? item.title : '';
     const typeVal = isEditing ? item.type : (prefill.type || 'task');
     const dateVal = isEditing ? (item.scheduled_date || '') : (prefill.scheduled_date || todayStr());
     const recurVal = isEditing ? (item.recurrence || 'daily') : 'daily';
-    const goalIdVal = isEditing ? (item.goalId || '') : (prefill.goalId || '');
 
-    const goalOpts = ['<option value="">— no stream —</option>']
-        .concat(appData.goals.map(g => `<option value="${g.id}" ${g.id === goalIdVal ? 'selected' : ''}>${esc(g.title)}</option>`))
-        .join('');
+    // "Where it lives": a stream (goal:id), an area directly (facet:id), or nowhere
+    let whereVal = '';
+    if (isEditing) {
+        whereVal = item.goalId ? 'goal:' + item.goalId : (item.facetId ? 'facet:' + item.facetId : '');
+    } else if (prefill.goalId) {
+        whereVal = 'goal:' + prefill.goalId;
+    } else if (prefill.homeModePref) {
+        const f = appData.facets.find(x => {
+            const m = appData.modes.find(md => md.id === x.modeId);
+            return m && m.type === prefill.homeModePref;
+        });
+        if (f) whereVal = 'facet:' + f.id;
+    }
+
+    const buildWhereOpts = (selected) => {
+        const areaOpts = appData.facets.map(f => {
+            const m = appData.modes.find(x => x.id === f.modeId);
+            const v = 'facet:' + f.id;
+            return `<option value="${v}" ${v === selected ? 'selected' : ''}>${esc(f.title)}${m ? ' · ' + m.title : ''}</option>`;
+        }).join('');
+        const streamOpts = appData.goals.filter(g => g.status !== 'completed').map(g => {
+            const f = appData.facets.find(x => x.id === g.facetId);
+            const v = 'goal:' + g.id;
+            return `<option value="${v}" ${v === selected ? 'selected' : ''}>${esc(g.title)}${f ? ' · ' + esc(f.title) : ''}</option>`;
+        }).join('');
+        return `<option value="" ${!selected ? 'selected' : ''}>— just an act —</option>
+      ${areaOpts ? `<optgroup label="Areas">${areaOpts}</optgroup>` : ''}
+      ${streamOpts ? `<optgroup label="Streams">${streamOpts}</optgroup>` : ''}
+      <option value="__newstream">＋ new stream…</option>`;
+    };
 
     const RECUR_OPTIONS = [
         ['daily', 'Daily'], ['weekdays', 'Weekdays (M-F)'], ['weekends', 'Weekends'],
@@ -1379,7 +1454,7 @@ function openItemEditor(item = null, prefill = {}) {
 
     const html = `
     <label>Title <input id="inp-title" type="text" value="${esc(titleVal)}" autofocus></label>
-    <label>Stream <select id="inp-goal">${goalOpts}</select></label>
+    <label>Where it lives <select id="inp-where">${buildWhereOpts(whereVal)}</select></label>
     <div id="ms-group" style="display:none">
       <label>Phase <select id="inp-ms"></select></label>
     </div>
@@ -1411,12 +1486,14 @@ function openItemEditor(item = null, prefill = {}) {
     const modal = renderModal(isEditing ? 'Edit act' : 'New act', html, (m) => {
         const title = m.querySelector('#inp-title').value.trim();
         if (!title) return false;
-        const goalId = m.querySelector('#inp-goal').value;
+        const where = m.querySelector('#inp-where').value;
+        const goalId = where.startsWith('goal:') ? where.slice(5) : '';
+        const facetId = where.startsWith('facet:') ? where.slice(6) : null;
         const type = m.querySelector('input[name="inp-type"]:checked').value;
         const newItem = {
             id: isEditing ? item.id : 'item_' + Date.now(),
-            title, type, goalId,
-            milestoneId: m.querySelector('#inp-ms').value || null,
+            title, type, goalId, facetId,
+            milestoneId: goalId ? (m.querySelector('#inp-ms').value || null) : null,
             status: isEditing ? item.status : 'active',
             recurrence: type === 'ritual' ? m.querySelector('#inp-recur').value : 'none',
             scheduled_date: type === 'task' ? (m.querySelector('#inp-date').value || null) : null,
@@ -1440,8 +1517,10 @@ function openItemEditor(item = null, prefill = {}) {
 
     const msGroup = modal.querySelector('#ms-group');
     const msSelect = modal.querySelector('#inp-ms');
+    const whereSelect = modal.querySelector('#inp-where');
     const syncMilestoneUI = () => {
-        const g = appData.goals.find(x => x.id === modal.querySelector('#inp-goal').value);
+        const v = whereSelect.value;
+        const g = v.startsWith('goal:') ? appData.goals.find(x => x.id === v.slice(5)) : null;
         const list = (g && g.milestones) || [];
         if (list.length === 0) {
             msGroup.style.display = 'none';
@@ -1453,20 +1532,39 @@ function openItemEditor(item = null, prefill = {}) {
             list.map(mst => `<option value="${mst.id}" ${mst.id === cur ? 'selected' : ''}>${esc(mst.title)}</option>`).join('');
         msGroup.style.display = 'block';
     };
-    modal.querySelector('#inp-goal').addEventListener('change', syncMilestoneUI);
+    let lastWhere = whereSelect.value;
+    whereSelect.addEventListener('change', () => {
+        if (whereSelect.value === '__newstream') {
+            const name = prompt('Name the new stream — a path you extend over months:');
+            if (!name || !name.trim()) {
+                whereSelect.value = lastWhere;
+                return;
+            }
+            const facet = defaultWorkFacet();
+            const g = {
+                id: 'goal_' + Date.now(), title: name.trim(), icon: '', status: 'active',
+                facetId: facet.id, start_date: '', deadline: '', milestones: []
+            };
+            appData.goals.push(g);
+            saveData();
+            whereSelect.innerHTML = buildWhereOpts('goal:' + g.id);
+        }
+        lastWhere = whereSelect.value;
+        syncMilestoneUI();
+    });
     syncMilestoneUI();
 
     if (isEditing) {
         modal.querySelector('#btn-archive').onclick = () => {
             item.status = item.status === 'archived' ? 'active' : 'archived';
-            modal.remove();
+            closeModal(modal);
             saveData();
             render();
         };
         modal.querySelector('#btn-delete').onclick = () => {
             if (confirm(`Delete "${item.title}"? This cannot be undone.`)) {
                 appData.items = appData.items.filter(i => i.id !== item.id);
-                modal.remove();
+                closeModal(modal);
                 saveData();
                 render();
             }
@@ -1574,7 +1672,7 @@ function openGoalEditor(defaults = {}, goal = null) {
     if (isEditing) {
         modal.querySelector('#btn-g-complete').onclick = () => {
             goal.status = isCompleted ? 'active' : 'completed';
-            modal.remove();
+            closeModal(modal);
             saveData();
             render();
         };
@@ -1586,15 +1684,59 @@ function openGoalEditor(defaults = {}, goal = null) {
             if (confirm(msg)) {
                 appData.items.forEach(i => { if (i.goalId === goal.id) i.goalId = ''; });
                 appData.goals = appData.goals.filter(g => g.id !== goal.id);
-                modal.remove();
+                closeModal(modal);
                 saveData();
-                goHome();
+                currentView = { level: 'home', contextId: null };
+                render();
             }
         };
     }
 }
 
-// --- Backup & restore ---
+// --- Principles editor ---
+function openPrinciplesEditor() {
+    const list = getPrinciples().map(p => p.slice());
+
+    const html = `
+    <p style="font:12px/1.5 var(--font-body);color:var(--ink-soft)">These walk with you — one greets you each morning, and each evening you mark the ones you lived. Make them yours.</p>
+    <div id="pr-list"></div>
+    <button type="button" id="pr-add" class="btn-text">＋ add a principle</button>`;
+
+    const modal = renderModal('Your principles', html, (m) => {
+        const cleaned = list.filter(p => p[0].trim()).map(p => [p[0].trim(), (p[1] || '').trim()]);
+        if (cleaned.length === 0) return false;
+        appData.principlesList = cleaned;
+        return true;
+    });
+
+    const listDiv = modal.querySelector('#pr-list');
+    const renderRows = () => {
+        listDiv.innerHTML = '';
+        list.forEach((p, idx) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;flex-direction:column;gap:5px;padding:10px 0;border-bottom:1px solid var(--edge)';
+            row.innerHTML = `
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" class="pr-name" placeholder="Principle" value="${esc(p[0])}" style="flex:1;padding:9px 14px;font-size:13px;font-weight:600">
+          <button type="button" class="pr-del" style="background:none;border:none;color:var(--ink-faint);font-size:1rem;cursor:pointer;padding:4px">×</button>
+        </div>
+        <input type="text" class="pr-desc" placeholder="What it means, in a line" value="${esc(p[1] || '')}" style="padding:8px 14px;font-size:12px">`;
+            row.querySelector('.pr-name').oninput = (e) => { p[0] = e.target.value; };
+            row.querySelector('.pr-desc').oninput = (e) => { p[1] = e.target.value; };
+            row.querySelector('.pr-del').onclick = () => { list.splice(idx, 1); renderRows(); };
+            listDiv.appendChild(row);
+        });
+    };
+    renderRows();
+    modal.querySelector('#pr-add').onclick = () => {
+        list.push(['', '']);
+        renderRows();
+        const names = listDiv.querySelectorAll('.pr-name');
+        names[names.length - 1].focus();
+    };
+}
+
+// --- Settings, backup & restore ---
 function openDataModal() {
     const snaps = snapshotKeys().reverse();
     const snapRows = snaps.map(k => {
@@ -1611,7 +1753,22 @@ function openDataModal() {
       <span style="font:10px var(--font-meta);color:var(--ember-hover)">restore →</span></div>`;
     }).join('');
 
+    const showP = appData.meta.showPrinciple !== false;
+    const freq = appData.meta.principleFreq || 'daily';
     const html = `
+    <div><div class="kicker" style="color:rgba(32,30,29,.45);margin-bottom:8px">Principles</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <label style="flex-direction:row;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font:600 13px var(--font-body);color:var(--ink-soft);cursor:pointer">
+        <input id="set-showp" type="checkbox" ${showP ? 'checked' : ''} style="width:auto"> Show a principle on the Today masthead
+      </label>
+      <label style="flex-direction:row;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font:600 13px var(--font-body);color:var(--ink-soft)">
+        Rotate <select id="set-freq" style="width:auto;padding:8px 14px;font-size:13px">
+          <option value="daily" ${freq === 'daily' ? 'selected' : ''}>daily</option>
+          <option value="weekly" ${freq === 'weekly' ? 'selected' : ''}>weekly</option>
+        </select>
+      </label>
+      <button type="button" id="set-editp" class="btn-text" style="padding:0">edit the principles →</button>
+    </div></div>
     <p style="font:12.5px/1.55 var(--font-body);color:var(--ink-soft)">Your data lives only on this device — nothing is sent anywhere. The app quietly keeps a daily safety copy of the last 7 days; tap one below to restore it. Export a file to move devices.</p>
     ${snaps.length ? `<div><div class="kicker" style="color:rgba(32,30,29,.45);margin-bottom:8px">Daily safety copies</div>
     <div style="display:flex;flex-direction:column;gap:6px">${snapRows}</div></div>` : ''}
@@ -1620,8 +1777,23 @@ function openDataModal() {
       <input id="inp-import" type="file" accept=".json,application/json" style="display:none">
     </label>
   `;
-    const modal = renderModal('Backup & restore', html, () => false);
+    const modal = renderModal('Settings & backup', html, () => false);
     modal.querySelector('.modal-footer').style.display = 'none';
+
+    modal.querySelector('#set-showp').onchange = (e) => {
+        appData.meta.showPrinciple = e.target.checked;
+        saveData();
+        render();
+    };
+    modal.querySelector('#set-freq').onchange = (e) => {
+        appData.meta.principleFreq = e.target.value;
+        saveData();
+        render();
+    };
+    modal.querySelector('#set-editp').onclick = () => {
+        closeModal(modal);
+        openPrinciplesEditor();
+    };
 
     modal.querySelectorAll('.snap-row').forEach(row => {
         row.onclick = () => {
@@ -1636,8 +1808,9 @@ function openDataModal() {
             }
             loadDataMigrateInPlace();
             saveData();
-            modal.remove();
-            goHome();
+            closeModal(modal);
+            currentView = { level: 'home', contextId: null };
+            render();
         };
     });
 
@@ -1670,8 +1843,9 @@ function openDataModal() {
             appData = data;
             loadDataMigrateInPlace();
             saveData();
-            modal.remove();
-            goHome();
+            closeModal(modal);
+            currentView = { level: 'home', contextId: null };
+            render();
         };
         reader.readAsText(file);
     };
@@ -1686,7 +1860,12 @@ function loadDataMigrateInPlace() {
     if (!appData.history) appData.history = {};
     if (!appData.goals) appData.goals = [];
     if (!appData.principles) appData.principles = { marks: {}, notes: {} };
+    if (!appData.principles.marks) appData.principles.marks = {};
+    if (!appData.principles.notes) appData.principles.notes = {};
     if (!appData.meta) appData.meta = {};
+    if (!Array.isArray(appData.principlesList) || appData.principlesList.length === 0) {
+        appData.principlesList = PRINCIPLES.map(p => p.slice());
+    }
 }
 
 // --- The philosophy card (replay from home) ---
@@ -1795,7 +1974,7 @@ function renderOnboarding() {
         <input id="ob-act" type="text" placeholder="e.g. Meditate for 15 min" value="${esc(state.act)}">
         <div style="padding:15px 18px;border-radius:22px;background:var(--star-tint)">
           <div style="font:600 9.5px var(--font-meta);letter-spacing:.13em;color:var(--star-ink);text-transform:uppercase;margin-bottom:7px">Five principles will walk with you</div>
-          <div style="font:12.5px/1.7 var(--font-body);color:var(--ink-soft)">${PRINCIPLES.map(p => p[0]).join(' · ')}</div>
+          <div style="font:12.5px/1.7 var(--font-body);color:var(--ink-soft)">${getPrinciples().map(p => esc(p[0])).join(' · ')}</div>
           <div style="font:11.5px/1.5 var(--font-body);color:var(--ink-faint);margin-top:5px;font-style:italic">One greets you each morning; each evening you mark the ones you lived.</div>
         </div>`;
             body.querySelector('#ob-act').oninput = (e) => { state.act = e.target.value; };
@@ -1850,8 +2029,10 @@ function renderOnboarding() {
         }
         const act = state.act.trim();
         if (act) {
+            const labourFacet = appData.facets.find(f => f.modeId === 'mode_circle');
             appData.items.push({
-                id: 'item_' + Date.now(), title: act, type: 'task', goalId: '', milestoneId: null,
+                id: 'item_' + Date.now(), title: act, type: 'task', goalId: '',
+                facetId: labourFacet ? labourFacet.id : null, milestoneId: null,
                 status: 'active', recurrence: 'none', scheduled_date: todayStr(), deadline: ''
             });
         }
@@ -1876,6 +2057,7 @@ function init() {
     }
     loadData();
     takeDailySnapshot();
+    history.replaceState({ view: currentView, homeMode }, '');
     if (!appData.meta.onboarded && appData.facets.length === 0) {
         renderOnboarding();
     } else {
