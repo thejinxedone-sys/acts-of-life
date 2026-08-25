@@ -1693,6 +1693,54 @@ function openGoalEditor(defaults = {}, goal = null) {
     }
 }
 
+// --- How to use this app ---
+function openGuide() {
+    const term = (name, glyphHtml, def) => `
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:7px 0">
+      ${glyphHtml ? `<span style="flex:none;width:22px;display:grid;place-items:center;margin-top:1px">${glyphHtml}</span>` : '<span style="flex:none;width:22px"></span>'}
+      <div style="font:12.5px/1.5 var(--font-body);color:var(--ink-soft)"><b style="color:var(--ink)">${name}</b> — ${def}</div>
+    </div>`;
+    const dot = (color) => `<span style="width:10px;height:10px;border-radius:50%;border:2px solid ${color};display:inline-block"></span>`;
+
+    const html = `
+    <div style="font:13px/1.6 var(--font-body);color:var(--ink-soft)">
+      This app is a <b style="color:var(--ink)">telescope for a life</b>, after Hannah Arendt's
+      <i>vita activa</i>. One world, seen at different zoom levels: the act in front of you,
+      the paths it extends, and the arc of your life behind and ahead. Everything you write
+      stays on this device.
+    </div>
+
+    <div>
+      <div class="kicker" style="color:rgba(32,30,29,.45);margin-bottom:4px">The three aspects of life</div>
+      ${term('Labour · the loop', glyph('labour', 15), 'anchors you tend so everything else can move — health, home, rest. Its acts repeat; kept loops grow streaks.')}
+      ${term('Work · the line', glyph('work', 15), 'paths you extend that outlast the day — craft, learning, building. Its streams stretch across months.')}
+      ${term('Action · the star', glyph('action', 15), 'acts that define your life; beginnings no one could predict. Initiatives, and the principles you live by.')}
+    </div>
+
+    <div>
+      <div class="kicker" style="color:rgba(32,30,29,.45);margin-bottom:4px">The words the app uses</div>
+      ${term('Act', dot('var(--ink-soft)'), 'one thing you do — a one-off task, or a ritual that recurs. Tap its circle to complete it; tap its small grey line to zoom out to where it lives.')}
+      ${term('Ritual', dot('var(--loop)'), 'an act that repeats — daily, weekdays, or a chosen day. Completing it on its due days builds a tending streak.')}
+      ${term('Area', null, 'a region of life you tend or build in — Health, Craft, Family. Every area belongs to one of the three aspects.')}
+      ${term('Stream', dot('var(--line)'), 'a path inside an area that you extend over months — a book, a product, a practice. Give it a start, a deadline, and phases.')}
+      ${term('Phase', null, 'a stretch of a stream — Build → Test → Launch. The first unfinished phase is <b>current</b>; acts can live inside a phase.')}
+      ${term('Today', null, 'the ground level: everything due now — overdue, today, upcoming, resting loops, and someday. The Today button shows all of life; the three glyphs filter one aspect.')}
+      ${term('Someday', null, 'acts you’ve declared but not yet scheduled. They wait, visible, until you give them a day.')}
+      ${term('The Horizon', null, 'the widest zoom (🗓): your streams as arcs in time, the trail of acts behind you, the road ahead. Zoom with the 3-months → Everything chips.')}
+      ${term('Principles', starSVG(13, 'var(--star)'), 'five (or your own) commitments that walk with you. One greets you each morning; each evening you mark the ones you lived and leave a line about how.')}
+      ${term('Rhythm', null, 'the week or month of your loops — which rituals turned, which rested.')}
+    </div>
+
+    <div>
+      <div class="kicker" style="color:rgba(32,30,29,.45);margin-bottom:4px">Good to know</div>
+      ${term('Adding', null, 'the ＋ button does everything in one sheet: name the act, choose where it lives (an area, a stream, or a new stream), its kind, and its day.')}
+      ${term('Zooming', null, 'tap an act’s meta line → its stream. Tap the horizon strip at the bottom of Today → your life. Back always steps one level in.')}
+      ${term('Your data', null, 'lives only on this device. The app keeps 7 daily safety copies (restore in Settings), and you can export/import a backup file to move devices.')}
+    </div>`;
+
+    const modal = renderModal('How to use this app', html, () => true, 'Got it');
+}
+
 // --- Principles editor ---
 function openPrinciplesEditor() {
     const list = getPrinciples().map(p => p.slice());
@@ -1756,6 +1804,9 @@ function openDataModal() {
     const showP = appData.meta.showPrinciple !== false;
     const freq = appData.meta.principleFreq || 'daily';
     const html = `
+    <button type="button" id="set-guide" class="btn-secondary" style="text-align:left;display:flex;align-items:center;gap:10px">
+      <span style="font-size:15px">✦</span> How to use this app
+    </button>
     <div><div class="kicker" style="color:rgba(32,30,29,.45);margin-bottom:8px">Principles</div>
     <div style="display:flex;flex-direction:column;gap:10px">
       <label style="flex-direction:row;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font:600 13px var(--font-body);color:var(--ink-soft);cursor:pointer">
@@ -1793,6 +1844,10 @@ function openDataModal() {
     modal.querySelector('#set-editp').onclick = () => {
         closeModal(modal);
         openPrinciplesEditor();
+    };
+    modal.querySelector('#set-guide').onclick = () => {
+        closeModal(modal);
+        openGuide();
     };
 
     modal.querySelectorAll('.snap-row').forEach(row => {
