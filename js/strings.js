@@ -19,18 +19,18 @@ export const S = {
     b1b: 'It draws your whole life on one page: the upkeep that keeps it running, the work that builds things, the rare acts that begin things.',
     b1c: 'First it shows you your arc. Then it helps you extend it.',
     actsT: 'It is the acts that define a life.',
-    actsLead: 'The ground keeps you alive. The work leaves things behind. But when a life is remembered — by you or by anyone — it is remembered by its acts.',
+    actsLead: 'The ground keeps you alive. The work leaves things behind. The acts are what make it a story.',
     actsFour: [
       ['It begins', ' — something that was not going to happen without you.'],
       ['It risks', ' — something real, accepted willingly.'],
       ['It reaches', ' — it changes something in someone else’s world.'],
       ['It cannot be taken back.', ''],
     ],
-    actsEx: 'The sent letter. The dinner you finally convened. The first step out of a bad place. A garden built alone from scrap, over forty years. The machine nobody believed in, built anyway.',
+    actsEx: 'The friend defended. The difficult apology. The truth said out loud. A garden built alone from scrap, over forty years. The machine nobody believed in, built anyway.',
     actsScale: 'From a minute’s courage to a life’s work — the scale doesn’t matter. The four conditions do.',
     actsClose: 'All four together are rare. A whole life holds surprisingly few — and that is exactly what makes them the story.',
     whyT: 'Your story is not what you say about yourself.',
-    whyB1: 'It is what others carry of what you did — the friend defended, the difficult apology, the truth said out loud.',
+    whyB1: 'It is what others carry of what you did.',
     whyB2: 'Broadcasts fade. Acts are remembered.',
     whyB3: 'Attending to your acts — those already done, and those still to come — is the most honest way anyone has found of learning who they are.',
     whyPivot: 'We’ll start where acts hide: in the moments you’re proud of.',
@@ -98,9 +98,9 @@ export const S = {
 
   begin: {
     title: 'Begin',
-    excavate: 'Something I did',
-    excavateSub: 'A moment from your past. We’ll see what it holds.',
-    declare: 'Something I will do',
+    excavate: 'An act I did',
+    excavateSub: 'A deed from your past — or a turning. We’ll place it together.',
+    declare: 'An act I will do',
     declareSub: 'A future act, held to a higher bar.',
     chapter: 'A chapter of work',
     chapterSub: 'A bounded effort that will leave something behind.',
@@ -110,7 +110,7 @@ export const S = {
 
   // ── Excavation: the generous historian ──
   excavate: {
-    title: 'Something you did',
+    title: 'An act you did',
     intro: 'What happened? One or two sentences, the way you’d tell a friend.',
     momentPlaceholder: 'What happened…',
     momentKicker: 'The moment',
