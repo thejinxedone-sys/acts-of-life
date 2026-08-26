@@ -205,6 +205,7 @@ export const S = {
     fallow: 'fallow',
     ship: 'Mark it shipped',
     shipAsk: 'What now exists?',
+    shipPrompt: 'Every phase is done — the road is walked.',
     close: 'Close without shipping',
     closeHint: 'Closed is honest. Not everything ships, and the line remains.',
     declareFallow: 'Declare fallow',

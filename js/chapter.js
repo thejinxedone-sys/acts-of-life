@@ -42,6 +42,7 @@ export function openChapterDetail(id, onChange) {
 }
 
 const expandedPhases = new Set();
+let shipPromptChapter = null;
 
 function renderDetail(el, ctx, id) {
   const c = getChapter(id);
@@ -166,6 +167,11 @@ function renderDetail(el, ctx, id) {
   }));
   el.querySelectorAll('[data-phase-done]').forEach(b => b.addEventListener('click', () => {
     updatePhase(id, b.dataset.phaseDone, { doneAt: todayStr() });
+    // When the last phase completes, offer shipping — once, gently.
+    const ch = getChapter(id);
+    if ((ch.phases || []).every(p => p.doneAt) && (ch.status === 'open' || ch.status === 'fallow')) {
+      shipPromptChapter = id;
+    }
     ctx.rerender();
   }));
   el.querySelectorAll('[data-phase-undone]').forEach(b => b.addEventListener('click', () => {
@@ -256,6 +262,18 @@ function renderDetail(el, ctx, id) {
       updateChapter(id, { status: 'open' });
       ctx.rerender();
     });
+  }
+
+  // The last phase just completed: open the shipping form, with one
+  // quiet line of why. An offer, not a wall — it can be ignored.
+  if (shipPromptChapter === id) {
+    shipPromptChapter = null;
+    const shipBtn = el.querySelector('[data-a="ship"]');
+    if (shipBtn) {
+      shipBtn.click();
+      editor.insertAdjacentHTML('afterbegin', `<p class="ship-prompt">${S.chapters.shipPrompt}</p>`);
+      editor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
 }
 

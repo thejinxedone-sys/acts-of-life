@@ -436,6 +436,14 @@ textarea:focus, input:focus, select:focus { border-color: var(--ember); }
   padding: 2px 8px;
 }
 .phase-meta { font-family: var(--font-meta); font-size: 0.6562rem; color: var(--ink-muted); }
+.ship-prompt {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin-bottom: 4px;
+}
+
 .phase-body { padding: 2px 13px 12px; border-top: 1px dashed var(--edge); }
 .phase-edit { display: flex; gap: 7px; margin: 9px 0 4px; }
 .phase-edit input[type="text"] { flex: 1; padding: 8px 11px; font-size: 0.8438rem; }
