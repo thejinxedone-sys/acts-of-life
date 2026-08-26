@@ -367,8 +367,42 @@ function chapterLanes(chapters) {
 
 let chapterYCache = new Map();   // used by stems
 
+// Phase labels are laid out globally: measured widths, collision checks
+// against every other label (and chapter names), placement below the
+// line first, then above, then a lower row — with a faint leader line
+// tethering any displaced label to its date tick. Labels that fit
+// nowhere are dropped; the tick and tooltip remain.
+function layoutPhaseLabels(jobs, placed, W) {
+  const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  const charW = 0.6875 * rootPx * 0.62;   // .phase-label is 0.6875rem mono
+  const out = [];
+  jobs.sort((a, b) => a.x - b.x);
+  for (const j of jobs) {
+    const name = j.name.length > 26 ? j.name.slice(0, 24) + '…' : j.name;
+    const w = name.length * charW + 6;
+    let anchor = 'start', lx = j.x + 3, xi1 = lx, xi2 = lx + w;
+    if (xi2 > W - 4) { anchor = 'end'; lx = j.x - 3; xi1 = lx - w; xi2 = lx; }
+    if (xi1 < 2) { anchor = 'start'; lx = 2; xi1 = 2; xi2 = 2 + w; }
+    const cands = [j.tickY + 13, j.tickY - 9, j.tickY + 26];
+    let y = null, ci = -1;
+    for (let k = 0; k < cands.length; k++) {
+      const cy = cands[k];
+      const clash = placed.some(r => !(xi2 < r.x1 - 6 || xi1 > r.x2 + 6) && Math.abs(cy - r.y) < 11);
+      if (!clash) { y = cy; ci = k; break; }
+    }
+    if (y == null) continue;
+    placed.push({ x1: xi1, x2: xi2, y });
+    if (ci === 1) out.push(`<line x1="${j.x}" y1="${j.tickY - 4}" x2="${j.x}" y2="${y + 2}" stroke="rgba(245,234,216,.16)" stroke-width="1"/>`);
+    if (ci === 2) out.push(`<line x1="${j.x}" y1="${j.tickY + 4}" x2="${j.x}" y2="${y - 8}" stroke="rgba(245,234,216,.16)" stroke-width="1"/>`);
+    out.push(`<text x="${lx}" y="${y}" text-anchor="${anchor}" class="phase-label" opacity="${j.op}"><title>${esc(j.name)}</title>${esc(name)}</text>`);
+  }
+  return out.join('');
+}
+
 function drawChapters(W, top, bot, ppd, nowX) {
   const out = [];
+  const labelJobs = [];
+  const placedRects = [];
   chapterYCache = new Map();
   let chapters = state.chapters.filter(c => {
     const s = dateMs(c.startedAt);
@@ -445,16 +479,20 @@ function drawChapters(W, top, bot, ppd, nowX) {
       const dated = !!(p.doneAt || p.target);
       const pt = clamp(times[i], s, endMs);
       const px = xOf(pt, W);
+      if (px < -20 || px > W + 20) return;
       out.push(`<line x1="${px}" y1="${y - 3.5}" x2="${px}" y2="${y + 3.5}" stroke="${cream(p.doneAt ? .7 : dated ? .35 : .25)}" stroke-width="1.4" ${dated ? '' : 'stroke-dasharray="2 2"'}/>`);
       if (ppd > 0.25) {
-        out.push(`<text x="${px + 3}" y="${y + 13}" class="phase-label" opacity="${p.doneAt ? .8 : dated ? .55 : .4}">${esc(p.name)}</text>`);
+        labelJobs.push({ x: px, tickY: y, name: p.name, op: p.doneAt ? .8 : dated ? .55 : .4 });
       }
     });
 
     // label
     const xEnd = ended ? xOf(ended, W) : nowX;
     if (xEnd - x1 > 64 && ppd > 0.045) {
-      out.push(`<text x="${Math.max(x1 + 4, 8)}" y="${y - 7}" class="chapter-label">${esc(c.name)}</text>`);
+      const lx = Math.max(x1 + 4, 8);
+      out.push(`<text x="${lx}" y="${y - 7}" class="chapter-label">${esc(c.name)}</text>`);
+      const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      placedRects.push({ x1: lx, x2: lx + c.name.length * 0.7812 * rootPx * 0.55, y: y - 7 });
     }
     // tap target with a native tooltip
     out.push(`<line x1="${x1}" y1="${y}" x2="${Math.max(xEnd, x1 + 20)}" y2="${y}" stroke="transparent" stroke-width="22" data-chapter="${c.id}" style="cursor:pointer"><title>${esc(c.name)}</title></line>`);
@@ -467,6 +505,8 @@ function drawChapters(W, top, bot, ppd, nowX) {
     const y = bot - 10;
     out.push(`<rect x="${fs}" y="${y - 5}" width="${Math.max(2, fe - fs)}" height="10" rx="5" fill="url(#fallowPat)"/>`);
   }
+
+  out.push(layoutPhaseLabels(labelJobs, placedRects, W));
   return out.join('');
 }
 
