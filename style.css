@@ -386,6 +386,17 @@ textarea:focus, input:focus, select:focus { border-color: var(--ember); }
   text-align: left;
 }
 .chapter-row:hover { border-color: var(--edge-strong); }
+.chapter-row { cursor: pointer; }
+.order-btns { display: flex; gap: 2px; flex: none; }
+.order-btn {
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+.order-btn:hover { background: var(--surface-sunken); color: var(--ink); }
+.order-btn.is-off { opacity: .25; pointer-events: none; }
 .chapter-line-mark { width: 22px; height: 2.5px; border-radius: 2px; background: var(--ink-soft); flex: none; }
 .chapter-line-mark.st-shipped { background: var(--ember); }
 .chapter-line-mark.st-closed { background: var(--ink-faint); }

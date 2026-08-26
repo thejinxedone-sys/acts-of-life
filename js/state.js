@@ -48,6 +48,12 @@ function load() {
         id: uid(), text: s.text, phaseId: null, doneAt: null, addedAt: s.date || todayStr(),
       });
     }
+    // Chapters gained a draw order; older data gets one by start date.
+    if (merged.chapters.some(c => c.order == null)) {
+      [...merged.chapters]
+        .sort((a, b) => (a.startedAt || '').localeCompare(b.startedAt || ''))
+        .forEach((c, i) => { c.order = i; });
+    }
     return merged;
   } catch {
     return blank();
@@ -146,10 +152,22 @@ export function addChapter(partial) {
   const c = Object.assign({
     id: uid(), name: '', startedAt: todayStr(), intendedEnd: null,
     shippingCondition: '', shippedNote: '', status: 'open', endedAt: null,
+    order: state.chapters.length ? Math.max(...state.chapters.map(x => x.order || 0)) + 1 : 0,
   }, partial);
   state.chapters.push(c);
   save();
   return c;
+}
+
+// Move a chapter up or down the draw order (dir: -1 higher, +1 lower).
+export function moveChapter(id, dir) {
+  const sorted = [...state.chapters].sort((a, b) => (a.order || 0) - (b.order || 0));
+  const i = sorted.findIndex(c => c.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= sorted.length) return;
+  sorted.forEach((c, k) => { c.order = k; });
+  [sorted[i].order, sorted[j].order] = [sorted[j].order, sorted[i].order];
+  save();
 }
 
 export function getChapter(id) { return state.chapters.find(c => c.id === id); }

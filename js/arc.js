@@ -351,15 +351,19 @@ function drawTodayGround(W, top, bot, nowX) {
 
 // ── Middle band: chapters as lines, fallow as drawn matter ──
 function chapterLanes(chapters) {
-  const sorted = [...chapters].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
-  const lanes = [];
+  // The user's draw order decides who sits higher; within a lane,
+  // chapters may share it only when their spans don't collide.
+  const sorted = [...chapters].sort((a, b) =>
+    (a.order || 0) - (b.order || 0) || a.startedAt.localeCompare(b.startedAt));
+  const GAP = 20 * DAY;
+  const lanes = [];   // each lane: a list of [start, end] intervals
   const out = new Map();
   for (const c of sorted) {
     const s = dateMs(c.startedAt);
     const e = c.endedAt ? dateMs(c.endedAt) : (c.intendedEnd ? Math.max(dateMs(c.intendedEnd), Date.now()) : Date.now() + 90 * DAY);
-    let lane = lanes.findIndex(end => end + 20 * DAY < s);
-    if (lane === -1) { lane = lanes.length; lanes.push(e); }
-    else lanes[lane] = e;
+    let lane = lanes.findIndex(ivs => ivs.every(([is, ie]) => e + GAP < is || ie + GAP < s));
+    if (lane === -1) { lane = lanes.length; lanes.push([]); }
+    lanes[lane].push([s, e]);
     out.set(c.id, lane);
   }
   return { laneOf: out, count: Math.max(1, lanes.length) };

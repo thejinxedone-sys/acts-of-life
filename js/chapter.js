@@ -3,6 +3,7 @@ import { S } from './strings.js';
 import {
   state, addChapter, getChapter, updateChapter, addFallow, save,
   addPhase, updatePhase, removePhase, addStep, toggleStep, removeStep, currentPhase,
+  moveChapter,
 } from './state.js';
 import { openSheet, toast } from './ui.js';
 import { esc, todayStr, fmtShort } from './util.js';
@@ -17,23 +18,38 @@ function statusLabel(c) {
 }
 
 function renderList(el, ctx) {
-  const chapters = [...state.chapters].sort((a, b) => (b.startedAt || '').localeCompare(a.startedAt || ''));
+  const chapters = [...state.chapters].sort((a, b) =>
+    (a.order || 0) - (b.order || 0) || (a.startedAt || '').localeCompare(b.startedAt || ''));
   el.innerHTML = `
     <header class="sheet-head">
       <h2>${S.chapters.title}</h2>
       <p class="sheet-sub">${S.chapters.subtitle}</p>
     </header>
+    ${chapters.length > 1 ? `<p class="hint">${S.chapters.orderHint}</p>` : ''}
     <div class="chapter-list">
-      ${chapters.map(c => `
-        <button class="chapter-row" data-id="${c.id}">
+      ${chapters.map((c, i) => `
+        <div class="chapter-row" data-id="${c.id}" role="button">
           <span class="chapter-line-mark st-${c.status}"></span>
           <span class="chapter-name">${esc(c.name)}</span>
           <span class="chapter-status">${statusLabel(c)}</span>
-        </button>`).join('')}
+          ${chapters.length > 1 ? `
+            <span class="order-btns">
+              <span class="order-btn ${i === 0 ? 'is-off' : ''}" data-move="-1" data-c="${c.id}" title="${S.chapters.drawHigher}">↑</span>
+              <span class="order-btn ${i === chapters.length - 1 ? 'is-off' : ''}" data-move="1" data-c="${c.id}" title="${S.chapters.drawLower}">↓</span>
+            </span>` : ''}
+        </div>`).join('')}
       ${!chapters.length ? `<p class="empty-note">${S.chapters.empty}</p>` : ''}
     </div>
     <button class="btn btn-primary" data-new>${S.chapters.newChapter}</button>`;
-  el.querySelectorAll('[data-id]').forEach(b => b.addEventListener('click', () => openChapterDetail(b.dataset.id, ctx.rerender)));
+  el.querySelectorAll('[data-id]').forEach(b => b.addEventListener('click', (e) => {
+    if (e.target.dataset.move) return;
+    openChapterDetail(b.dataset.id, ctx.rerender);
+  }));
+  el.querySelectorAll('[data-move]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    moveChapter(b.dataset.c, parseInt(b.dataset.move, 10));
+    ctx.rerender();
+  }));
   el.querySelector('[data-new]').addEventListener('click', () => openChapterEditor(null, ctx.rerender));
 }
 
