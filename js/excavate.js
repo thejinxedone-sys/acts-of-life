@@ -7,7 +7,7 @@
 import { S } from './strings.js';
 import { state, addEntry } from './state.js';
 import { glyphHtml } from './glyphs.js';
-import { openSheet, toast } from './ui.js';
+import { openSheet, toast, whyHtml, wireWhy } from './ui.js';
 import { esc } from './util.js';
 import { aiAvailable, excavateNext } from './ai.js';
 import { openChapterEditor } from './chapter.js';
@@ -190,12 +190,14 @@ export function excavationEngine(container, opts = {}) {
       <header class="sheet-head">
         <h2 class="question">${esc(q.q)}</h2>
         ${q.hint ? `<p class="sheet-sub">${esc(q.hint)}</p>` : ''}
+        ${whyHtml(q.key)}
       </header>
       <textarea class="big-input" rows="3">${esc(st.answers[q.key] || '')}</textarea>
       <div class="btn-row">
         <button class="btn btn-quiet" data-skip>${S.excavate.skipQuestion}</button>
         <button class="btn btn-primary" data-next>${S.common.next}</button>
       </div>`;
+    wireWhy(container);
     const ta = container.querySelector('textarea');
     ta.focus();
     const submit = (val) => {
@@ -224,11 +226,15 @@ export function excavationEngine(container, opts = {}) {
   function renderConfirm(kind, why, keepTitle) {
     const openChapters = state.chapters.filter(c => c.status === 'open' || c.status === 'fallow');
     const caption = kind === 'act' ? S.excavate.placeActCaption : S.excavate.placeTurningCaption;
+    // The scripted route cannot judge; it can only hold the mirror up.
+    const stakeEmpty = kind === 'act' && !(st.answers.stake || '').trim();
     container.innerHTML = `
       <div class="placement">
         <span class="placement-glyph">${glyphHtml(kind, 40, 'var(--ember)')}</span>
         <p class="placement-why">${esc(why)}</p>
         <p class="placement-caption">${esc(caption)}</p>
+        ${kind === 'act' ? `<p class="self-check">${S.excavate.selfCheck}</p>` : ''}
+        ${stakeEmpty ? `<p class="stake-note">${S.excavate.stakeEmptyNote}</p>` : ''}
       </div>
       <div class="form-col">
         <span class="kicker">${S.excavate.titleAsk}</span>
@@ -247,7 +253,7 @@ export function excavationEngine(container, opts = {}) {
         <button class="btn btn-quiet" data-other>${S.excavate.adjustPlacement}</button>
         <button class="btn btn-primary" data-save>${kind === 'act' ? S.excavate.confirmAct : S.excavate.confirmTurning}</button>
       </div>
-      <div class="alt-col" hidden>
+      <div class="alt-col" ${stakeEmpty ? '' : 'hidden'}>
         <button class="alt-choice" data-as="act"><b>${S.excavate.asAct}</b><span>${S.excavate.asActSub}</span></button>
         <button class="alt-choice" data-as="turning"><b>${S.excavate.asTurning}</b><span>${S.excavate.asTurningSub}</span></button>
         <button class="btn btn-quiet" data-keep>${S.excavate.keepPrivate}</button>

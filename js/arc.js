@@ -495,12 +495,21 @@ function drawChapters(W, top, bot, ppd, nowX) {
     });
 
     // label
+    // The chapter's name sits to the left, before the line begins.
+    // When the start is off-screen (or hugs the left edge), the name
+    // falls back to riding above the line.
     const xEnd = ended ? xOf(ended, W) : nowX;
-    if (xEnd - x1 > 64 && ppd > 0.045) {
-      const lx = Math.max(x1 + 4, 8);
-      out.push(`<text x="${lx}" y="${y - 7}" class="chapter-label">${esc(c.name)}</text>`);
+    if (ppd > 0.045 && x1 < W + 20 && xEnd > -20) {
       const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-      placedRects.push({ x1: lx, x2: lx + c.name.length * 0.7812 * rootPx * 0.55, y: y - 7 });
+      const w = c.name.length * 0.7812 * rootPx * 0.55;
+      if (x1 - 10 - w > 4) {
+        out.push(`<text x="${x1 - 10}" y="${y + 4}" text-anchor="end" class="chapter-label">${esc(c.name)}</text>`);
+        placedRects.push({ x1: x1 - 10 - w, x2: x1 - 10, y });
+      } else if (xEnd - Math.max(x1, 0) > 64) {
+        const lx = Math.max(x1 + 4, 8);
+        out.push(`<text x="${lx}" y="${y - 7}" class="chapter-label">${esc(c.name)}</text>`);
+        placedRects.push({ x1: lx, x2: lx + w, y: y - 7 });
+      }
     }
     // tap target with a native tooltip
     out.push(`<line x1="${x1}" y1="${y}" x2="${Math.max(xEnd, x1 + 20)}" y2="${y}" stroke="transparent" stroke-width="22" data-chapter="${c.id}" style="cursor:pointer"><title>${esc(c.name)}</title></line>`);

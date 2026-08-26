@@ -1,5 +1,24 @@
 // Sheet manager: every surface besides the Arc rises over it as paper.
 // History-integrated so hardware/browser back closes the top sheet.
+import { S } from './strings.js';
+
+// The four tests explained in place: a quiet disclosure under a
+// question. The vocabulary is the curriculum; this is its footnote.
+export function whyHtml(key) {
+  const text = S.why[key === 'hinge' ? 'reach' : key === 'irreversibleNote' ? 'irreversible' : key];
+  if (!text) return '';
+  return `<div class="why">
+    <button class="why-toggle" type="button">${S.why.toggle}</button>
+    <p class="why-blurb" hidden>${text}</p>
+  </div>`;
+}
+
+export function wireWhy(container) {
+  container.querySelectorAll('.why-toggle').forEach(b => b.addEventListener('click', () => {
+    const p = b.nextElementSibling;
+    if (p) p.hidden = !p.hidden;
+  }));
+}
 
 const stack = [];
 let host = null;

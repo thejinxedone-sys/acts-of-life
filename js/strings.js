@@ -66,6 +66,15 @@ export const S = {
     done: 'Got it',
   },
 
+  // ── The four tests, explained where they are applied ──
+  why: {
+    toggle: 'Why this matters',
+    beginning: 'An act starts something that was not going to happen without you. The next step of an existing effort — however demanding — belongs to that effort’s line, honourably, as work. Counts: convening the dinner no one asked for. Doesn’t: submitting the report that was due.',
+    stake: 'Stake is what you could have lost, judged before you knew how it would go. If nothing real was exposed — money, standing, comfort, a relationship, a self-image — it was safe, and safe things are maintenance or work. A trophy won while risking nothing is a trace of skill, not an act. Attempts that failed with real stake count fully.',
+    reach: 'An act lands among other people — it changes something outside your own head, in someone else’s world. Pleasure taken or comfort enjoyed reaches no one; the question is whose life shifted, even slightly. A true hinge that stayed inside you is a turning, drawn as a crescent, with full dignity.',
+    irreversible: 'An act cannot be quietly taken back; once done, the world contains it. If you could undo it tomorrow and nobody would ever know, it has not landed yet. The sent letter, the spoken word, the signed name — these are past retrieval.',
+  },
+
   begin: {
     title: 'Begin',
     excavate: 'Something I did',
@@ -121,6 +130,8 @@ export const S = {
     asTurningSub: 'a crescent — an inward hinge',
     titleAsk: 'Give it a name for the arc',
     titleHint: 'Short, like a chapter heading.',
+    selfCheck: 'It began something. Something real was at risk. Other people felt it. It cannot be taken back. If one of these is missing, this is not a star — place it differently, or keep it private. The arc is only as true as what you set in it.',
+    stakeEmptyNote: 'The stake was left empty. If nothing was at risk, this may belong to the ground or to a line of work rather than the sky.',
   },
 
   // ── Declaration: the demanding coach ──

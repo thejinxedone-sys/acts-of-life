@@ -266,6 +266,45 @@ input, textarea, select { font: inherit; color: var(--ink); }
 .kicker em { font-style: normal; text-transform: none; letter-spacing: 0; }
 
 .hint { font-size: 0.75rem; color: var(--ink-faint); margin-top: 6px; }
+
+/* "Why this matters" — the four tests, explained in place */
+.why { margin-top: 8px; }
+.why-toggle {
+  font-family: var(--font-meta);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--ember-press);
+  padding: 2px 0;
+}
+.why-toggle:hover { color: var(--ember-hover); }
+.why-blurb {
+  font-size: 0.8438rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  border-left: 2px solid var(--edge-strong);
+  padding-left: 12px;
+  margin-top: 6px;
+}
+
+.self-check {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  border-top: 1px dashed var(--edge-strong);
+  padding-top: 10px;
+  margin: 14px 0 4px;
+}
+.stake-note {
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--ember-press);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-row);
+  padding: 9px 12px;
+  margin-top: 10px;
+  text-align: left;
+}
 .soft { color: var(--ink-soft); font-size: 0.8438rem; }
 .meta { font-family: var(--font-meta); font-size: 0.6875rem; color: var(--ink-muted); }
 .empty-note { color: var(--ink-muted); font-size: 0.8438rem; padding: 18px 4px; }

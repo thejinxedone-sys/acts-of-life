@@ -6,7 +6,7 @@
 import { S } from './strings.js';
 import { state, addEntry, addPerson, declaredEntries, DECLARED_CAP, getChapter, save } from './state.js';
 import { glyphHtml } from './glyphs.js';
-import { openSheet, toast } from './ui.js';
+import { openSheet, toast, whyHtml, wireWhy } from './ui.js';
 import { esc, fill, todayStr, msToIso, fmtShort, DAY } from './util.js';
 import { aiAvailable, declarationCheck } from './ai.js';
 import { openStory } from './story.js';
@@ -55,12 +55,14 @@ export function declarationEngine(container, opts = {}) {
       <header class="sheet-head">
         <h2 class="question">${title}</h2>
         <p class="sheet-sub">${hint}</p>
+        ${whyHtml(key)}
       </header>
       <textarea class="big-input" rows="3">${esc(st[key])}</textarea>
       <div class="btn-row">
         ${prev ? `<button class="btn btn-quiet" data-back>${S.common.back}</button>` : ''}
         <button class="btn btn-primary" data-next>${S.common.next}</button>
       </div>`;
+    wireWhy(container);
     const ta = container.querySelector('textarea');
     ta.focus();
     container.querySelector('[data-next]').addEventListener('click', () => {
@@ -177,6 +179,7 @@ export function declarationEngine(container, opts = {}) {
             ${openChapters.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}
           </select>` : ''}
       </div>
+      <p class="self-check">${S.excavate.selfCheck}</p>
       <div class="btn-row">
         <button class="btn btn-quiet" data-back>${S.common.back}</button>
         <button class="btn btn-primary" data-confirm>${S.declare.confirm}</button>
