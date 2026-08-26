@@ -66,13 +66,21 @@ export const S = {
     done: 'Got it',
   },
 
-  // ── The four tests, explained where they are applied ──
+  // ── The four tests: one idiom, leading every card ──
+  principles: {
+    beginning: 'An act starts something that was not going to happen without you.',
+    stake: 'An act risks something real — standing, money, safety, a relationship — and accepts that risk willingly.',
+    reach: 'An act lands among other people — it changes something in someone else’s world.',
+    irreversible: 'An act cannot be taken back — it sets something into the world that is no longer yours alone.',
+  },
+
+  // The fuller ground beneath each principle, on request.
   why: {
     toggle: 'Why this matters',
-    beginning: 'An act starts something that was not going to happen without you. The next step of an existing effort — however demanding — belongs to that effort’s line, honourably, as work. Counts: convening the dinner no one asked for. Doesn’t: submitting the report that was due.',
-    stake: 'Stake is what you could have lost, judged before you knew how it would go. If nothing real was exposed — money, standing, comfort, a relationship, a self-image — it was safe, and safe things are maintenance or work. A trophy won while risking nothing is a trace of skill, not an act. Attempts that failed with real stake count fully.',
-    reach: 'An act lands among other people — it changes something outside your own head, in someone else’s world. Pleasure taken or comfort enjoyed reaches no one; the question is whose life shifted, even slightly. A true hinge that stayed inside you is a turning, drawn as a crescent, with full dignity.',
-    irreversible: 'An act cannot be quietly taken back; once done, the world contains it. If you could undo it tomorrow and nobody would ever know, it has not landed yet. The sent letter, the spoken word, the signed name — these are past retrieval.',
+    beginning: 'The next step of an existing effort — however demanding — belongs to that effort’s line, honourably, as work. Counts: convening the dinner no one asked for. Doesn’t: submitting the report that was due.',
+    stake: 'Judge the risk as it stood before the outcome was known — attempts that failed with real stake count fully. If nothing real was exposed, it was safe, and safe things are maintenance or work. A trophy won while risking nothing is a trace of skill, not an act.',
+    reach: 'Pleasure taken or comfort enjoyed reaches no one; the question is whose life shifted, even slightly. A true hinge that stayed entirely inside you is a turning, drawn as a crescent, with full dignity.',
+    irreversible: 'If you could undo it tomorrow and nobody would ever know, it has not landed yet. The sent letter, the spoken word, the signed name — these are past retrieval.',
   },
 
   begin: {
@@ -95,12 +103,12 @@ export const S = {
     momentKicker: 'The moment',
     whenTitle: 'When was this, roughly?',
     whenHint: 'A year is enough.',
-    qBeginning: 'What was new here — what did this set in motion?',
-    qBeginningHint: 'A first step, a break with the old, a change of course. Not the next step of something already underway.',
-    qStake: 'What did it cost you to choose this, before you knew how it would go?',
-    qStakeHint: 'Money, standing, comfort, a relationship, a version of yourself. “Nothing, really” is an honest answer too.',
+    qBeginning: 'What did you start that wouldn’t have existed otherwise?',
+    qBeginningHint: '',
+    qStake: 'What did you risk, before you knew how it would go?',
+    qStakeHint: '“Nothing, really” is an honest answer too.',
     qReach: 'Who else felt it?',
-    qReachHint: 'People whose world shifted, even slightly. If it stayed entirely inside you, leave this empty — that matters in its own way.',
+    qReachHint: 'If it stayed entirely inside you, leave this empty — that matters in its own way.',
     qHinge: 'Was there a day it showed on the outside?',
     qHingeHint: 'The call made, the flat emptied, the first morning back. Inner changes usually have one visible day.',
     skipQuestion: 'Skip',
@@ -138,14 +146,14 @@ export const S = {
   declare: {
     title: 'Declare an act',
     intro: 'Four tests, a date, a witness. Declared acts are rare on purpose — five at most may stand open.',
-    qBeginning: 'What will this begin?',
-    qBeginningHint: 'A beginning, not the next step of something already underway.',
-    qStake: 'What is at risk — judged now, before you know how it goes?',
-    qStakeHint: 'If nothing real is exposed, it isn’t an act yet.',
-    qReach: 'Whose world does it reach, beyond your own?',
-    qReachHint: 'An act lands among others. Name who will feel it.',
-    qIrreversible: 'Once done, it can’t be taken back. What makes it so?',
-    qIrreversibleHint: 'The word said, the letter sent, the door closed behind you.',
+    qBeginning: 'What will this begin that wouldn’t exist otherwise?',
+    qBeginningHint: '',
+    qStake: 'What are you putting at risk, before you know how it goes?',
+    qStakeHint: '',
+    qReach: 'Whose world will it reach, beyond your own?',
+    qReachHint: '',
+    qIrreversible: 'Once done, what will make it impossible to take back?',
+    qIrreversibleHint: '',
     dateTitle: 'By when?',
     dateHint: 'A declared act without a date is a wish.',
     exposureTitle: 'How exposed does this leave you?',

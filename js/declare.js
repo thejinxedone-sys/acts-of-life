@@ -6,7 +6,7 @@
 import { S } from './strings.js';
 import { state, addEntry, addPerson, declaredEntries, DECLARED_CAP, getChapter, save } from './state.js';
 import { glyphHtml } from './glyphs.js';
-import { openSheet, toast, whyHtml, wireWhy } from './ui.js';
+import { openSheet, toast, principleHtml, whyHtml, wireWhy } from './ui.js';
 import { esc, fill, todayStr, msToIso, fmtShort, DAY } from './util.js';
 import { aiAvailable, declarationCheck } from './ai.js';
 import { openStory } from './story.js';
@@ -53,8 +53,9 @@ export function declarationEngine(container, opts = {}) {
   const askText = (key, title, hint, next, prev) => () => {
     container.innerHTML = `
       <header class="sheet-head">
-        <h2 class="question">${title}</h2>
-        <p class="sheet-sub">${hint}</p>
+        ${principleHtml(key)}
+        <h2 class="question under-principle">${title}</h2>
+        ${hint ? `<p class="sheet-sub">${hint}</p>` : ''}
         ${whyHtml(key)}
       </header>
       <textarea class="big-input" rows="3">${esc(st[key])}</textarea>

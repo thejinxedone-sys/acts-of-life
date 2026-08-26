@@ -252,6 +252,22 @@ input, textarea, select { font: inherit; color: var(--ink); }
   line-height: 1.25;
 }
 .sheet-head h2.question { font-size: 1.3125rem; }
+
+/* The principle leads the card; the question serves it. */
+.principle {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.2rem;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.sheet-head h2.question.under-principle {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
 .sheet-sub { color: var(--ink-soft); font-size: 0.8438rem; margin-top: 6px; }
 
 .kicker {

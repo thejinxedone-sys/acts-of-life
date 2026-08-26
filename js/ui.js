@@ -2,10 +2,18 @@
 // History-integrated so hardware/browser back closes the top sheet.
 import { S } from './strings.js';
 
-// The four tests explained in place: a quiet disclosure under a
-// question. The vocabulary is the curriculum; this is its footnote.
+// The four tests explained in place. The principle leads the card in
+// one idiom; the question follows; the disclosure holds the depth.
+const testKeyOf = (key) =>
+  key === 'hinge' ? 'reach' : key === 'irreversibleNote' ? 'irreversible' : key;
+
+export function principleHtml(key) {
+  const text = S.principles[testKeyOf(key)];
+  return text ? `<p class="principle">${text}</p>` : '';
+}
+
 export function whyHtml(key) {
-  const text = S.why[key === 'hinge' ? 'reach' : key === 'irreversibleNote' ? 'irreversible' : key];
+  const text = S.why[testKeyOf(key)];
   if (!text) return '';
   return `<div class="why">
     <button class="why-toggle" type="button">${S.why.toggle}</button>

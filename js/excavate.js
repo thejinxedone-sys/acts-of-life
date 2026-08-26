@@ -7,7 +7,7 @@
 import { S } from './strings.js';
 import { state, addEntry } from './state.js';
 import { glyphHtml } from './glyphs.js';
-import { openSheet, toast, whyHtml, wireWhy } from './ui.js';
+import { openSheet, toast, principleHtml, whyHtml, wireWhy } from './ui.js';
 import { esc } from './util.js';
 import { aiAvailable, excavateNext } from './ai.js';
 import { openChapterEditor } from './chapter.js';
@@ -188,7 +188,8 @@ export function excavationEngine(container, opts = {}) {
     container.innerHTML = `
       ${quote()}
       <header class="sheet-head">
-        <h2 class="question">${esc(q.q)}</h2>
+        ${principleHtml(q.key)}
+        <h2 class="question under-principle">${esc(q.q)}</h2>
         ${q.hint ? `<p class="sheet-sub">${esc(q.hint)}</p>` : ''}
         ${whyHtml(q.key)}
       </header>
