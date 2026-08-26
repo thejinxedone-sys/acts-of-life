@@ -250,8 +250,8 @@ The sections below record where the shipped app deliberately extends or supersed
 
 Expectation-setting comes **before** the cold open. The word "qualify" still appears nowhere.
 
-1. **Intro, four screens:** (a) purpose — "Most apps manage your days. This one is for your life"; (b) **the three altitudes**, each glyph drawn beside its definition, so act/turning/line/circle exist in the user's head before the words are used; (c) the promises — no confetti, no applause, no little numbers, no comparison, no judgment of the past; (d) **the AI choice** — "Just the app" (private, free) vs "With a second reader" (key pasted and tested on the spot).
-2. Cold open: five proud moments (one is enough).
+1. **Intro, five screens:** (a) the hook — "Most apps manage your days. This one is for your life" over an animated preview of the arc's own grammar (ground circles pulse in, a work line draws itself, a star rises), closing "First it shows you your arc. Then it helps you extend it"; (b) **the three altitudes**, each glyph drawn beside its definition; (c) **why acts** — "Your story is not what you say about yourself… Broadcasts fade. Acts are remembered," pivoting to "We'll start where acts hide: in the moments you're proud of," with a browse-only Library link; (d) the promises — no confetti, no applause, no little numbers, no comparison, no judgment of the past; (e) **the AI choice** — "Just the app" (private, free) vs "With a second reader" (key pasted and tested on the spot).
+2. Cold open: five proud moments (one is enough), "Pride is where acts hide," with the browse-only Library link for reference.
 3. Bridge copy connecting pride → beginnings, before any verdicts.
 4. Excavation of each moment — **the written moment is carried in as a quoted epigraph; the user never re-types it.**
 5. Reveal beat (the sentence) → the arc draws itself.

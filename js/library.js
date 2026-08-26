@@ -5,15 +5,15 @@ import { openSheet } from './ui.js';
 import { esc } from './util.js';
 import { openDeclaration } from './declare.js';
 
-export function openLibrary(onChange) {
-  openSheet((el, ctx) => renderLibrary(el, ctx), { tall: true, onClose: onChange });
+export function openLibrary(onChange, opts = {}) {
+  openSheet((el, ctx) => renderLibrary(el, ctx, opts), { tall: true, onClose: onChange });
 }
 
 function exposureDots(n) {
   return `<span class="lib-exposure" title="${S.library.exposure} ${n}">${'·'.repeat(n)}<b>${n}</b></span>`;
 }
 
-function renderLibrary(el, ctx) {
+function renderLibrary(el, ctx, opts = {}) {
   el.innerHTML = `
     <header class="sheet-head">
       <h2>${S.library.title}</h2>
@@ -31,7 +31,7 @@ function renderLibrary(el, ctx) {
               ${exposureDots(e.exposure)}
             </div>
             <p class="lib-text">${esc(e.text)}</p>
-            <button class="btn btn-quiet lib-declare" data-f="${f.id}" data-i="${EXAMPLES.indexOf(e)}">${S.library.declareThis}</button>
+            ${opts.browse ? '' : `<button class="btn btn-quiet lib-declare" data-f="${f.id}" data-i="${EXAMPLES.indexOf(e)}">${S.library.declareThis}</button>`}
           </div>`).join('')}
       </section>`).join('')}
 

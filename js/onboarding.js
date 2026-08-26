@@ -9,7 +9,8 @@ import { SENTENCE } from './sentence.js';
 import { state, save, addPerson, addChapter, addEntry, addRitual } from './state.js';
 import { excavationEngine } from './excavate.js';
 import { EXAMPLES } from './library-data.js';
-import { glyphHtml } from './glyphs.js';
+import { glyphHtml, starPath } from './glyphs.js';
+import { openLibrary } from './library.js';
 import { esc, fill, todayStr, msToIso, DAY } from './util.js';
 import { renderArc } from './arc.js';
 import { openSheet } from './ui.js';
@@ -27,16 +28,50 @@ export function startOnboarding() {
   const app = document.getElementById('app');
   const ob = { moments: ['', '', '', '', ''], chapterName: '' };
 
-  // ── 0. The intro: purpose → altitudes → promises → AI choice ──
+  // ── 0. The intro: purpose → altitudes → why acts → promises → AI ──
+  // The hook scene animates the arc's own grammar: ground circles pulse
+  // in, a work line draws itself, a star rises. A preview, not a metaphor.
+  function hookScene() {
+    const circles = Array.from({ length: 9 }, (_, i) =>
+      `<circle cx="${52 + i * 24}" cy="104" r="2.6" fill="rgba(245,234,216,.35)" class="hs-ground" style="animation-delay:${0.35 + i * 0.11}s"/>`).join('');
+    return `
+      <svg class="hook-scene" viewBox="0 0 300 120" aria-hidden="true">
+        ${circles}
+        <line x1="52" y1="72" x2="236" y2="72" stroke="rgba(245,234,216,.5)" stroke-width="2"
+              pathLength="1" class="hs-line" style="animation-delay:1.5s"/>
+        <g class="hs-star" style="animation-delay:2.5s">
+          <circle cx="204" cy="30" r="16" fill="rgba(246,160,107,.18)"/>
+          <path d="${starPath(204, 30, 8)}" fill="rgba(247,238,222,.95)"/>
+        </g>
+      </svg>`;
+  }
+
   function intro1() {
     app.innerHTML = `
       <div class="ob-root ob-center">
         <h1 class="ob-title">${S.intro.t1}</h1>
         <p class="ob-body">${S.intro.b1a}</p>
+        ${hookScene()}
         <p class="ob-body">${S.intro.b1b}</p>
+        <p class="ob-body ob-strong">${S.intro.b1c}</p>
         <button class="btn btn-primary ob-next" data-next>${S.intro.next}</button>
       </div>`;
     app.querySelector('[data-next]').addEventListener('click', intro2);
+  }
+
+  function introWhy() {
+    app.innerHTML = `
+      <div class="ob-root ob-center">
+        <h1 class="ob-title">${S.intro.whyT}</h1>
+        <p class="ob-body">${S.intro.whyB1}</p>
+        <p class="ob-body ob-strong">${S.intro.whyB2}</p>
+        <p class="ob-body">${S.intro.whyB3}</p>
+        <p class="ob-body ob-pivot">${S.intro.whyPivot}</p>
+        <button class="btn btn-quiet ob-lib" data-lib>${S.intro.libraryPeek}</button>
+        <button class="btn btn-primary ob-next" data-next>${S.intro.next}</button>
+      </div>`;
+    app.querySelector('[data-next]').addEventListener('click', intro3);
+    app.querySelector('[data-lib]').addEventListener('click', () => openLibrary(null, { browse: true }));
   }
 
   function intro2() {
@@ -56,7 +91,7 @@ export function startOnboarding() {
         </div>
         <button class="btn btn-primary ob-next" data-next>${S.intro.next}</button>
       </div>`;
-    app.querySelector('[data-next]').addEventListener('click', intro3);
+    app.querySelector('[data-next]').addEventListener('click', introWhy);
   }
 
   function intro3() {
@@ -119,12 +154,17 @@ export function startOnboarding() {
         <div class="ob-moments">
           ${ob.moments.map((m, i) => `<input type="text" data-m="${i}" maxlength="140" placeholder="${S.onboarding.momentPlaceholder}" value="${esc(m)}" />`).join('')}
         </div>
+        <button class="btn btn-quiet ob-lib" data-lib>${S.intro.libraryPeek}</button>
         <button class="btn btn-primary ob-next" data-next>${S.onboarding.continueBtn}</button>
       </div>`;
     app.querySelector('[data-next]').addEventListener('click', () => {
       app.querySelectorAll('[data-m]').forEach(inp => { ob.moments[+inp.dataset.m] = inp.value.trim(); });
       if (!ob.moments.some(Boolean)) return;
       stepPriming();
+    });
+    app.querySelector('[data-lib]').addEventListener('click', () => {
+      app.querySelectorAll('[data-m]').forEach(inp => { ob.moments[+inp.dataset.m] = inp.value.trim(); });
+      openLibrary(null, { browse: true });
     });
   }
 
