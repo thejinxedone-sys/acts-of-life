@@ -4,16 +4,15 @@ import { S } from './strings.js';
 
 // The four tests explained in place. The principle leads the card in
 // one idiom; the question follows; the disclosure holds the depth.
-const testKeyOf = (key) =>
-  key === 'hinge' ? 'reach' : key === 'irreversibleNote' ? 'irreversible' : key;
-
 export function principleHtml(key) {
-  const text = S.principles[testKeyOf(key)];
+  // The hinge card keeps its own lead — it must not read as a repeat
+  // of the reach question it follows.
+  const text = S.principles[key === 'irreversibleNote' ? 'irreversible' : key];
   return text ? `<p class="principle">${text}</p>` : '';
 }
 
 export function whyHtml(key) {
-  const text = S.why[testKeyOf(key)];
+  const text = S.why[key === 'hinge' ? 'reach' : key === 'irreversibleNote' ? 'irreversible' : key];
   if (!text) return '';
   return `<div class="why">
     <button class="why-toggle" type="button">${S.why.toggle}</button>

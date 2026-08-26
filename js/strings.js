@@ -85,6 +85,7 @@ export const S = {
     stake: 'An act risks something real — standing, money, safety, a relationship — and accepts that risk willingly.',
     reach: 'An act lands among other people — it changes something in someone else’s world.',
     irreversible: 'An act cannot be taken back — it sets something into the world that is no longer yours alone.',
+    hinge: 'Even a change that happened inside you usually has one visible day.',
   },
 
   // The fuller ground beneath each principle, on request.
@@ -123,7 +124,7 @@ export const S = {
     qReach: 'Who else felt it?',
     qReachHint: 'If it stayed entirely inside you, leave this empty — that matters in its own way.',
     qHinge: 'Was there a day it showed on the outside?',
-    qHingeHint: 'The call made, the flat emptied, the first morning back. Inner changes usually have one visible day.',
+    qHingeHint: 'The call made, the flat emptied, the first morning back.',
     skipQuestion: 'Skip',
     sensitiveTitle: 'Some moments shouldn’t be taken apart.',
     sensitiveBody: 'If you’d rather, this one can stay exactly as you wrote it — saved whole, private, off the arc, no questions asked.',
