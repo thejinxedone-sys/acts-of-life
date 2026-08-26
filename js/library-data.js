@@ -13,6 +13,8 @@ export const FAMILIES = [
   { id: 'convening', name: 'Convening', note: 'Making a table exist where there was none.' },
   { id: 'asking', name: 'Asking', note: 'Requests that expose the asker.' },
   { id: 'refusal', name: 'Refusal', note: 'The no that costs something.' },
+  { id: 'making', name: 'Making', note: 'Things begun into the world, that outlast the beginning.' },
+  { id: 'preserving', name: 'Preserving', note: 'Acts against forgetting.' },
 ];
 
 export const EXAMPLES = [
@@ -23,6 +25,8 @@ export const EXAMPLES = [
   { family: 'care', exposure: 5, title: 'Begin the leaving', text: 'Take the first concrete step out of a situation that harms you — the call, the bag, the told friend. The first step is the act; everything after is its unfolding.' },
   { family: 'care', exposure: 2, title: 'Tell the family the diagnosis', text: 'Stop managing everyone’s feelings and say the true thing about your health, or theirs, to the people it concerns.' },
   { family: 'care', exposure: 1, title: 'Ask the quiet one', text: 'Ask the withdrawn person in your family one real question, alone, and stay for the whole answer.' },
+  { family: 'care', exposure: 3, title: 'Take up the one nobody will', text: 'Care, concretely and repeatedly, for a person the world has quietly given up on.',
+    link: 'https://en.wikipedia.org/wiki/Mother_Teresa', linkText: 'one person began alone, with nothing' },
 
   // ── Repair ──
   { family: 'repair', exposure: 2, title: 'The apology without an excuse', text: 'Go back to someone you wronged and apologise for the specific thing, with no “but”, accepting whatever they do with it.' },
@@ -64,6 +68,20 @@ export const EXAMPLES = [
   { family: 'refusal', exposure: 4, title: 'Refuse the instruction', text: 'Decline, with your name attached, to do the thing you believe is wrong — and say why to the person who asked.' },
   { family: 'refusal', exposure: 2, title: 'End the arrangement kindly', text: 'End the recurring thing that no longer serves either of you — the collaboration, the committee seat — to their face, with the reason.' },
   { family: 'refusal', exposure: 1, title: 'Give back the inherited opinion', text: 'Say, to the person you got it from, that you no longer believe the thing your family or circle has always said.' },
+
+  // ── Making — from a weekend's craft to a life's monument ──
+  { family: 'making', exposure: 2, title: 'Begin the garden on waste ground', text: 'Claim the neglected patch — plant it, shape it, keep returning — until a place exists where there was none.',
+    link: 'https://en.wikipedia.org/wiki/Nek_Chand', linkText: 'built secretly from scrap, for eighteen years' },
+  { family: 'making', exposure: 2, title: 'Plant what you won’t sit under', text: 'Begin the forest, the orchard, the grove — one sapling at a time, on ground nobody is watching.',
+    link: 'https://en.wikipedia.org/wiki/Jadav_Payeng', linkText: 'one man planted a forest, tree by tree' },
+  { family: 'making', exposure: 1, title: 'Build the tool that should exist', text: 'Make the small thing you keep wishing someone would make — and put it where others can use it.' },
+  { family: 'making', exposure: 2, title: 'Open the one-room library', text: 'Put your books where the street can reach them, and keep it stocked.' },
+
+  // ── Preserving ──
+  { family: 'preserving', exposure: 1, title: 'Record the old songs', text: 'Sit the eldest voices down with a recorder before the songs go with them.',
+    link: 'https://en.wikipedia.org/wiki/Alan_Lomax', linkText: 'one man recorded the world’s vanishing songs' },
+  { family: 'preserving', exposure: 1, title: 'Write the family down', text: 'Get the story of how your people got here onto paper, while the ones who lived it can still correct you.' },
+  { family: 'preserving', exposure: 2, title: 'Photograph what is vanishing', text: 'The closing shop, the last practitioner, the street about to change — make the record nobody commissioned.' },
 ];
 
 // ── Contrast pairs: the same territory, a world apart ──
@@ -82,6 +100,11 @@ export const CONTRASTS = [
     left: { title: 'The 100-day public run, posted daily', note: 'Repetition displayed. Admirable labour — but it is maintenance, performed.' },
     right: { title: 'The standing monthly table', note: 'A convening that exists because you began it, and holds people together without an audience.' },
     lesson: 'The difference is a beginning that lands among others.',
+  },
+  {
+    left: { title: 'The pitch deck', note: 'Permission sought, risk deferred — the beginning outsourced to a yes.' },
+    right: { title: 'The prototype', note: 'Built without asking, shown working. The beginning already happened.' },
+    lesson: 'Acts do not wait for permission.',
   },
   {
     left: { title: 'Burner-account bravado', note: 'Loud, costless, deniable. No skin in the game.' },

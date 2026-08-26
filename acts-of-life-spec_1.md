@@ -151,6 +151,10 @@ Fast batch-clearing UI reached by tapping the ground. Feels like clearing, not a
 ### 5.5 The Mirror (weekly)
 2-minute generated review on the user's chosen day: attention by altitude (rough, not surveillance-precise), open loops (hollow stars with approaching dates), and what reached the arc. Often: "Nothing reached the arc this week." — stated flatly, once, no adjectives, immediately followed by nothing. The Mirror judges the week, never the person. Available weekly only; scarcity preserves its weight.
 
+<!-- v2.1: the Library additionally holds Making and Preserving families
+     (grand-scale but permissionless acts), with quiet Wikipedia links on a
+     few examples — unnamed in copy, named only behind the link. -->
+
 ### 5.6 The Library
 Curated examples organised by family — **repair, speech, promise, convening, asking, refusal, care** — each with an exposure level. Care-acts are prominent, not an appendix: the boundary drawn with a parent, the sibling confronted about an ailing mother's care, the promise made at a bedside, the escape initiated from an abusive situation. Everything in the library is doable by someone with no money, authority, or audience; nothing is dangerous, illegal, or aimed at named individuals.
 
@@ -250,7 +254,7 @@ The sections below record where the shipped app deliberately extends or supersed
 
 Expectation-setting comes **before** the cold open. The word "qualify" still appears nowhere.
 
-1. **Intro, five screens:** (a) the hook — "Most apps manage your days. This one is for your life" over an animated preview of the arc's own grammar (ground circles pulse in, a work line draws itself, a star rises), closing "First it shows you your arc. Then it helps you extend it"; (b) **the three altitudes**, each glyph drawn beside its definition; (c) **why acts** — "Your story is not what you say about yourself… Broadcasts fade. Acts are remembered," pivoting to "We'll start where acts hide: in the moments you're proud of," with a browse-only Library link; (d) the promises — no confetti, no applause, no little numbers, no comparison, no judgment of the past; (e) **the AI choice** — "Just the app" (private, free) vs "With a second reader" (key pasted and tested on the spot).
+1. **Intro, five screens** (with back buttons and quiet progress dots): (a) the hook — "Most apps manage your days. This one is for your life" over an animated, subtly labelled preview of the arc's own grammar (ground circles pulse in, a work line draws itself, a star rises), closing "First it shows you your arc. Then it helps you extend it"; (b) **the three altitudes**, each glyph beside its definition, with the overlap caveat as fine print ("a way of seeing, not a filing system"); (c) **acts, closely** — "It is the acts that define a life," the four conditions in the shared idiom, and a spectrum of unnamed examples from the sent letter to the garden built from scrap over forty years; (d) **whose story** — "Your story is not what you say about yourself… Broadcasts fade. Acts are remembered," pivoting to the moments you're proud of, with a browse-only Library link; (e) the promises — what it will never do, and what it cannot do: "It asks; you answer. The honesty of your answers is the whole instrument." **The AI choice was removed from onboarding**; the second reader lives in Settings only.
 2. Cold open: five proud moments (one is enough), "Pride is where acts hide," with the browse-only Library link for reference.
 3. Bridge copy connecting pride → beginnings, before any verdicts.
 4. Excavation of each moment — **the written moment is carried in as a quoted epigraph; the user never re-types it.**

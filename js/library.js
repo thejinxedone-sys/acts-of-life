@@ -31,6 +31,7 @@ function renderLibrary(el, ctx, opts = {}) {
               ${exposureDots(e.exposure)}
             </div>
             <p class="lib-text">${esc(e.text)}</p>
+            ${e.link ? `<a class="lib-link" href="${e.link}" target="_blank" rel="noopener">${esc(e.linkText)} →</a>` : ''}
             ${opts.browse ? '' : `<button class="btn btn-quiet lib-declare" data-f="${f.id}" data-i="${EXAMPLES.indexOf(e)}">${S.library.declareThis}</button>`}
           </div>`).join('')}
       </section>`).join('')}

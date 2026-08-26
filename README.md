@@ -38,8 +38,8 @@ All data lives **only on your device** (browser local storage). No
 account, no server, no analytics, no trackers. Seven silent daily
 on-device safety copies; JSON export/import; the Telling exports as a
 document. The only external requests are the Google Fonts stylesheets —
-plus, **only if you opt in** (during onboarding or under Settings → "A
-second reader"), calls to Anthropic's Claude API with your own key to
+plus, **only if you opt in** (Settings → "A second reader"), calls to
+Anthropic's Claude API with your own key to
 shape questions during entry flows. The model interrogates; it never
 authors your entries.
 

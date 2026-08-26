@@ -14,7 +14,7 @@ import { openLibrary } from './library.js';
 import { esc, fill, todayStr, msToIso, DAY } from './util.js';
 import { renderArc } from './arc.js';
 import { openSheet } from './ui.js';
-import { aiAvailable, suggestActs, testKey } from './ai.js';
+import { aiAvailable, suggestActs } from './ai.js';
 import { startTour } from './tour.js';
 
 const FIRST_ACT_TITLES = [
@@ -37,13 +37,23 @@ export function startOnboarding() {
     return `
       <svg class="hook-scene" viewBox="0 0 300 120" aria-hidden="true">
         ${circles}
+        <text x="44" y="107" text-anchor="end" class="hs-label hs-ground" style="animation-delay:1.1s">${S.intro.labelGround}</text>
         <line x1="52" y1="72" x2="236" y2="72" stroke="rgba(245,234,216,.5)" stroke-width="2"
               pathLength="1" class="hs-line" style="animation-delay:1.5s"/>
+        <text x="244" y="75" class="hs-label hs-ground" style="animation-delay:2.3s">${S.intro.labelWork}</text>
         <g class="hs-star" style="animation-delay:2.5s">
           <circle cx="204" cy="30" r="16" fill="rgba(246,160,107,.18)"/>
           <path d="${starPath(204, 30, 8)}" fill="rgba(247,238,222,.95)"/>
         </g>
+        <text x="228" y="34" class="hs-label hs-ground" style="animation-delay:3.2s">${S.intro.labelActs}</text>
       </svg>`;
+  }
+
+  // A subtle way back, and a quiet promise of how short this is.
+  const obBack = (fn) => fn ? `<button class="ob-back" data-back>‹ ${S.common.back}</button>` : '';
+  const obDots = (n) => `<div class="ob-dots">${[1, 2, 3, 4, 5].map(k => `<span class="${k <= n ? 'on' : ''}"></span>`).join('')}</div>`;
+  function wireBack(fn) {
+    app.querySelector('[data-back]')?.addEventListener('click', fn);
   }
 
   function intro1() {
@@ -55,13 +65,35 @@ export function startOnboarding() {
         <p class="ob-body">${S.intro.b1b}</p>
         <p class="ob-body ob-strong">${S.intro.b1c}</p>
         <button class="btn btn-primary ob-next" data-next>${S.intro.next}</button>
+        ${obDots(1)}
       </div>`;
     app.querySelector('[data-next]').addEventListener('click', intro2);
+  }
+
+  // ── Acts, closely: the four conditions, dwelt on ──
+  function introActs() {
+    app.innerHTML = `
+      <div class="ob-root ob-center">
+        ${obBack(intro2)}
+        <h1 class="ob-title">${S.intro.actsT}</h1>
+        <p class="ob-body">${S.intro.actsLead}</p>
+        <div class="acts-four">
+          ${S.intro.actsFour.map(([lead, rest]) => `<p><b>${lead}</b>${rest}</p>`).join('')}
+        </div>
+        <p class="ob-ex">${S.intro.actsEx}</p>
+        <p class="ob-body">${S.intro.actsScale}</p>
+        <p class="ob-body ob-strong">${S.intro.actsClose}</p>
+        <button class="btn btn-primary ob-next" data-next>${S.intro.next}</button>
+        ${obDots(3)}
+      </div>`;
+    app.querySelector('[data-next]').addEventListener('click', introWhy);
+    wireBack(intro2);
   }
 
   function introWhy() {
     app.innerHTML = `
       <div class="ob-root ob-center">
+        ${obBack(introActs)}
         <h1 class="ob-title">${S.intro.whyT}</h1>
         <p class="ob-body">${S.intro.whyB1}</p>
         <p class="ob-body ob-strong">${S.intro.whyB2}</p>
@@ -69,9 +101,11 @@ export function startOnboarding() {
         <p class="ob-body ob-pivot">${S.intro.whyPivot}</p>
         <button class="btn btn-quiet ob-lib" data-lib>${S.intro.libraryPeek}</button>
         <button class="btn btn-primary ob-next" data-next>${S.intro.next}</button>
+        ${obDots(4)}
       </div>`;
     app.querySelector('[data-next]').addEventListener('click', intro3);
     app.querySelector('[data-lib]').addEventListener('click', () => openLibrary(null, { browse: true }));
+    wireBack(introActs);
   }
 
   function intro2() {
@@ -82,6 +116,7 @@ export function startOnboarding() {
       </div>`;
     app.innerHTML = `
       <div class="ob-root">
+        ${obBack(intro1)}
         <h1 class="ob-title">${S.intro.t2}</h1>
         <div class="alt-list">
           ${row(glyphHtml('act', 22, 'var(--ember-bright)'), S.intro.alt3Name, S.intro.alt3)}
@@ -89,66 +124,34 @@ export function startOnboarding() {
           ${row('<span class="line-glyph-intro"></span>', S.intro.alt2Name, S.intro.alt2)}
           ${row(glyphHtml('maintenance', 22, 'rgba(245,234,216,.5)'), S.intro.alt1Name, S.intro.alt1)}
         </div>
+        <p class="ob-caveat">${S.intro.caveat}</p>
         <button class="btn btn-primary ob-next" data-next>${S.intro.next}</button>
+        ${obDots(2)}
       </div>`;
-    app.querySelector('[data-next]').addEventListener('click', introWhy);
+    app.querySelector('[data-next]').addEventListener('click', introActs);
+    wireBack(intro1);
   }
 
   function intro3() {
     app.innerHTML = `
       <div class="ob-root ob-center">
+        ${obBack(introWhy)}
         <h1 class="ob-title">${S.intro.t3}</h1>
         <p class="ob-body">${S.intro.b3a}</p>
         <p class="ob-body">${S.intro.b3b}</p>
+        <p class="ob-body ob-strong">${S.intro.b3c}</p>
         <button class="btn btn-primary ob-next" data-next>${S.intro.next}</button>
+        ${obDots(5)}
       </div>`;
-    app.querySelector('[data-next]').addEventListener('click', intro4);
-  }
-
-  function intro4() {
-    app.innerHTML = `
-      <div class="ob-root">
-        <h1 class="ob-title">${S.intro.t4}</h1>
-        <p class="ob-body">${S.intro.b4}</p>
-        <div class="ai-choice">
-          <button class="ai-option" data-ai="no"><b>${S.intro.aiNo}</b><span>${S.intro.aiNoSub}</span></button>
-          <button class="ai-option" data-ai="yes"><b>${S.intro.aiYes}</b><span>${S.intro.aiYesSub}</span></button>
-        </div>
-        <div class="ai-key" hidden>
-          <input type="password" data-key placeholder="${S.intro.aiKeyAsk}" autocomplete="off" />
-          <p class="ob-hint">${S.intro.aiKeyNote}</p>
-          <p class="ob-hint ai-key-status"></p>
-          <button class="btn btn-primary" data-keygo>${S.intro.next}</button>
-        </div>
-      </div>`;
-    const keyBox = app.querySelector('.ai-key');
-    app.querySelector('[data-ai="no"]').addEventListener('click', () => {
-      state.settings.aiOn = false;
-      save();
-      stepMoments();
-    });
-    app.querySelector('[data-ai="yes"]').addEventListener('click', () => {
-      keyBox.hidden = false;
-      keyBox.querySelector('input').focus();
-    });
-    keyBox.querySelector('[data-keygo]').addEventListener('click', async () => {
-      const key = keyBox.querySelector('[data-key]').value.trim();
-      const status = keyBox.querySelector('.ai-key-status');
-      if (!key) return;
-      state.settings.aiKey = key;
-      state.settings.aiOn = true;
-      save();
-      status.textContent = '…';
-      const ok = await testKey(key).catch(() => false);
-      status.textContent = ok ? S.intro.aiKeyOk : S.intro.aiKeyBad;
-      if (ok) setTimeout(stepMoments, 500);
-    });
+    app.querySelector('[data-next]').addEventListener('click', stepMoments);
+    wireBack(introWhy);
   }
 
   // ── 1. Five moments, nothing else on screen ──
   function stepMoments() {
     app.innerHTML = `
       <div class="ob-root">
+        ${obBack(intro3)}
         <h1 class="ob-title">${S.onboarding.coldOpen}</h1>
         <p class="ob-hint">${S.onboarding.coldOpenHint}</p>
         <div class="ob-moments">
@@ -166,16 +169,19 @@ export function startOnboarding() {
       app.querySelectorAll('[data-m]').forEach(inp => { ob.moments[+inp.dataset.m] = inp.value.trim(); });
       openLibrary(null, { browse: true });
     });
+    wireBack(intro3);
   }
 
   // ── 2. The bridge: from pride to beginnings, before any verdicts ──
   function stepPriming() {
     app.innerHTML = `
       <div class="ob-root ob-center">
+        ${obBack(stepMoments)}
         <p class="ob-priming">${S.onboarding.priming}</p>
         <button class="btn btn-primary ob-next" data-next>${S.onboarding.findThem}</button>
       </div>`;
     app.querySelector('[data-next]').addEventListener('click', () => excavateAll());
+    wireBack(stepMoments);
   }
 
   // ── 3. Each moment through the excavation flow ──

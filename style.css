@@ -607,6 +607,16 @@ textarea:focus, input:focus, select:focus { border-color: var(--ember); }
 .lib-exposure b { margin-left: 2px; }
 .lib-text { font-size: 0.8438rem; color: var(--ink-soft); margin-top: 5px; }
 .lib-declare { margin-top: 6px; padding-left: 0; }
+.lib-link {
+  display: inline-block;
+  font-family: var(--font-meta);
+  font-size: 0.6875rem;
+  letter-spacing: .04em;
+  color: var(--ember-press);
+  text-decoration: none;
+  margin-top: 7px;
+}
+.lib-link:hover { color: var(--ember-hover); text-decoration: underline; }
 .counterfeit { border-style: dashed; background: transparent; }
 .fails { font-family: var(--font-meta); font-size: 0.625rem; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-muted); flex: none; }
 
@@ -674,9 +684,11 @@ textarea:focus, input:focus, select:focus { border-color: var(--ember); }
 
 /* ── Onboarding: night, then paper ─────────────────────────────── */
 .ob-root {
-  min-height: 100dvh;
+  position: relative;
+  height: 100dvh;
+  overflow-y: auto;
   display: flex; flex-direction: column;
-  padding: calc(8vh + env(safe-area-inset-top)) 26px 6vh;
+  padding: calc(7vh + env(safe-area-inset-top)) 26px calc(6vh + 26px);
   max-width: 620px; margin: 0 auto;
   color: var(--night-ink);
 }
@@ -764,6 +776,58 @@ textarea:focus, input:focus, select:focus { border-color: var(--ember); }
 .ob-lib:hover { color: var(--night-ink); }
 .ob-lib + .ob-next { margin-top: 10px; }
 
+.ob-back {
+  position: absolute;
+  top: calc(14px + env(safe-area-inset-top)); left: 18px;
+  color: var(--night-ink-35);
+  font-size: 0.8438rem;
+  padding: 6px 10px;
+  z-index: 5;
+}
+.ob-back:hover { color: var(--night-ink-60); }
+
+.ob-dots {
+  position: absolute;
+  bottom: calc(20px + env(safe-area-inset-bottom)); left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 7px;
+}
+.ob-dots span {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(245, 234, 216, .18);
+}
+.ob-dots span.on { background: rgba(245, 234, 216, .55); }
+
+/* Acts, closely */
+.acts-four { margin: 20px auto 4px; max-width: 420px; text-align: left; }
+.acts-four p {
+  color: var(--night-ink-60);
+  font-size: 0.9062rem;
+  line-height: 1.6;
+  padding: 5px 0 5px 14px;
+  border-left: 2px solid rgba(245, 234, 216, .18);
+  margin: 6px 0;
+}
+.acts-four b { color: var(--night-ink); font-family: var(--font-display); font-weight: 600; }
+
+.ob-ex {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--night-ink-60);
+  max-width: 440px;
+  margin: 18px auto 4px;
+}
+
+.ob-caveat {
+  font-size: 0.7188rem;
+  line-height: 1.55;
+  color: var(--night-ink-35);
+  margin-top: 20px;
+  max-width: 460px;
+}
+
 /* The hook scene: the arc's own grammar, drawing itself once. */
 .hook-scene { width: min(300px, 80vw); margin: 26px auto 6px; display: block; overflow: visible; }
 .hs-ground { opacity: 0; animation: hsIn .5s ease forwards; }
@@ -778,6 +842,13 @@ textarea:focus, input:focus, select:focus { border-color: var(--ember); }
   transform-box: fill-box;
   transform-origin: center;
   animation: hsRise .9s cubic-bezier(.2, .8, .3, 1.15) forwards;
+}
+.hs-label {
+  font-family: var(--font-meta);
+  font-size: 8.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  fill: rgba(245, 234, 216, .45);
 }
 @keyframes hsIn { to { opacity: 1; } }
 @keyframes hsDraw { to { stroke-dashoffset: 0; } }
