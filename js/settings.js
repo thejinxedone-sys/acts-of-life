@@ -31,6 +31,14 @@ function renderSettings(el, ctx) {
     </div>
 
     <div class="story-field">
+      <span class="kicker">${S.settings.textTitle}</span>
+      <div class="day-row">
+        ${[[1, S.settings.textDefault], [1.15, S.settings.textLarge], [1.3, S.settings.textLarger]]
+          .map(([v, label]) => `<button class="day-chip text-chip ${(state.settings.textScale || 1) === v ? 'on' : ''}" data-scale="${v}">${label}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="story-field">
       <span class="kicker">${S.settings.mirrorDayTitle}</span>
       <div class="day-row">
         ${S.days.map((d, i) => `<button class="day-chip ${state.settings.mirrorDay === i ? 'on' : ''}" data-day="${i}">${d.slice(0, 2)}</button>`).join('')}
@@ -89,6 +97,12 @@ function renderSettings(el, ctx) {
     };
     reader.readAsText(f);
   });
+  el.querySelectorAll('[data-scale]').forEach(b => b.addEventListener('click', () => {
+    state.settings.textScale = parseFloat(b.dataset.scale);
+    save();
+    import('./main.js').then(({ applyTextScale }) => applyTextScale());
+    ctx.rerender();
+  }));
   el.querySelectorAll('[data-day]').forEach(b => b.addEventListener('click', () => {
     state.settings.mirrorDay = parseInt(b.dataset.day, 10);
     save();

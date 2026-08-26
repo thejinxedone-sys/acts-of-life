@@ -11,6 +11,12 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 
 takeDailySnapshot();
 
+// All type is set in rem; one root size scales the whole app.
+export function applyTextScale() {
+  document.documentElement.style.fontSize = (16 * (state.settings.textScale || 1)) + 'px';
+}
+applyTextScale();
+
 if (state.settings.onboarded) {
   renderArc();
 } else {

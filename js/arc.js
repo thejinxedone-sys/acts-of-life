@@ -401,18 +401,22 @@ function drawChapters(W, top, bot, ppd, nowX) {
     out.push(`<line x1="${x1}" y1="${y - 4}" x2="${x1}" y2="${y + 4}" stroke="${cream(.5)}" stroke-width="1.2"/>`);
 
     if (ended) {
-      const x2 = xOf(ended, W);
-      out.push(`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${cream(c.status === 'closed' ? .3 : .52)}" stroke-width="${strokeW}"/>`);
+      const x2 = Math.max(xOf(ended, W), x1 + 5);
+      out.push(`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${cream(c.status === 'closed' ? .3 : .6)}" stroke-width="${strokeW}"/>`);
       if (c.status === 'shipped') {
         // the terminal mark: the durable thing now exists
         out.push(`<rect x="${x2 - 3.4}" y="${y - 3.4}" width="6.8" height="6.8" transform="rotate(45 ${x2} ${y})" fill="${cream(.85)}"/>`);
       }
     } else {
       const xNow = xOf(Math.min(nowMs, domain.t1), W);
-      out.push(`<line x1="${x1}" y1="${y}" x2="${xNow}" y2="${y}" stroke="${cream(.52)}" stroke-width="${strokeW}"/>`);
-      // beyond now: dotted intention
+      // A chapter whose road is fully walked (every phase done) draws
+      // solid — the dotted intention is gone; only shipping remains.
+      const phasesAll = (c.phases || []);
+      const allDone = phasesAll.length > 0 && phasesAll.every(p => p.doneAt);
+      out.push(`<line x1="${x1}" y1="${y}" x2="${Math.max(xNow, x1 + 5)}" y2="${y}" stroke="${cream(allDone ? .68 : .52)}" stroke-width="${strokeW}"/>`);
       const intend = c.intendedEnd ? dateMs(c.intendedEnd) : nowMs + 90 * DAY;
-      if (intend > nowMs) {
+      if (!allDone && intend > nowMs) {
+        // beyond now: dotted intention
         out.push(`<line x1="${xNow}" y1="${y}" x2="${xOf(intend, W)}" y2="${y}" stroke="${cream(.28)}" stroke-width="${strokeW * 0.8}" stroke-dasharray="2 5"/>`);
       }
     }

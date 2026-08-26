@@ -24,6 +24,7 @@ const blank = () => ({
     tourDone: false,
     begunOnce: false,
     mirrorDay: 6,     // 0=Sunday … 6=Saturday
+    textScale: 1,     // 1 | 1.15 | 1.3 — scales all type via root rem
     aiKey: '',
     aiOn: false,
     lastQuarterly: null,
