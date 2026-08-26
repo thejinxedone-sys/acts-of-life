@@ -254,7 +254,7 @@ The sections below record where the shipped app deliberately extends or supersed
 
 Expectation-setting comes **before** the cold open. The word "qualify" still appears nowhere.
 
-1. **Intro, five screens** (with back buttons and quiet progress dots): (a) the hook — "Most apps manage your days. This one is for your life" over an animated, subtly labelled preview of the arc's own grammar (ground circles pulse in, a work line draws itself, a star rises), closing "First it shows you your arc. Then it helps you extend it"; (b) **the three altitudes**, each glyph beside its definition, with the overlap caveat as fine print ("a way of seeing, not a filing system"); (c) **acts, closely** — "It is the acts that define a life," the four conditions in the shared idiom, and a spectrum of unnamed examples from the sent letter to the garden built from scrap over forty years; (d) **whose story** — "Your story is not what you say about yourself… Broadcasts fade. Acts are remembered," pivoting to the moments you're proud of, with a browse-only Library link; (e) the promises — what it will never do, and what it cannot do: "It asks; you answer. The honesty of your answers is the whole instrument." **The AI choice was removed from onboarding**; the second reader lives in Settings only.
+1. **Intro, five screens** (with back buttons and quiet progress dots): (a) the hook — "Most apps manage your days. This one is for your life" over an animated, subtly labelled preview of the arc's own grammar (ground circles pulse in, a work line draws itself, a star rises), closing "First it shows you your arc. Then it helps you extend it"; (b) **the three altitudes**, each glyph beside its definition, with the overlap caveat as fine print ("a way of seeing, not a filing system"); (c) **acts, closely** — "It is the acts that define a life," lead "The acts are what make it a story," the four conditions in the shared idiom, and a spectrum of unnamed examples from the friend defended to the garden built from scrap over forty years; (d) **whose story** — "Your story is not what you say about yourself… Broadcasts fade. Acts are remembered," pivoting to the moments you're proud of, with a browse-only Library link (each of (c) and (d) makes exactly one claim — definition there, remembrance here — with no example overlap); (e) the promises — what it will never do, and what it cannot do: "It asks; you answer. The honesty of your answers is the whole instrument." **The AI choice was removed from onboarding**; the second reader lives in Settings only.
 2. Cold open: five proud moments (one is enough), "Pride is where acts hide," with the browse-only Library link for reference.
 3. Bridge copy connecting pride → beginnings, before any verdicts.
 4. Excavation of each moment — **the written moment is carried in as a quoted epigraph; the user never re-types it.**
@@ -263,15 +263,25 @@ Expectation-setting comes **before** the cold open. The word "qualify" still app
 7. **Two starter rituals are seeded** (removable) so the ground shows its use from day one.
 8. **A five-step guided tour** over the live arc: sky, lines, ground (including today-rings), the Begin button (which pulses until first pressed), and the menu. Replayable from Settings.
 
-### 12.3 Excavation (amends §5.2a)
+### 12.3 Excavation and declaration (amends §5.2)
 
+- **The four tests lead their cards, in one idiom, in both flows**: "An act starts something that was not going to happen without you" / "risks something real — and accepts that risk willingly" / "lands among other people — it changes something in someone else's world" / "cannot be taken back — it sets something into the world that is no longer yours alone" — set bold above the operative question, with a quiet "Why this matters" disclosure holding the counts/doesn't-count contrasts (the trophy won risking nothing, the report that was due, failed attempts counting fully).
+- **The scripted route holds the mirror up rather than judging**: star placements carry a flat four-test self-check ("…If one of these is missing, this is not a star — place it differently, or keep it private. The arc is only as true as what you set in it"), and an empty stake gets a gentle note with the alternatives already unfolded. Informed prerogative, never a gate.
 - "Keep this as yours, unclassified" is **contextual, not ambient**: a sensitive-content gate (keyword net + AI judgment when on) intervenes *before* questioning — "Some moments shouldn't be taken apart… saved whole, private, off the arc, no questions asked" — and a quiet "Keep it off the arc — private, no glyph" lives on the placement screen. Kept notes collect under **Kept private**.
-- Questions are context-proof ("What was new here — what did this set in motion?" etc.); the hinge question always fires when reach comes back empty. Skips are labeled "Skip".
+- The hinge question fires when reach comes back empty and carries **its own lead** ("Even a change that happened inside you usually has one visible day") so it never reads as a repeat of reach. Skips are labeled "Skip".
 - The placement card names the glyph ("Acts are drawn as stars"), and re-placing act↔turning preserves the user's typed title.
+- The **Begin menu names the deed**: "An act I did — a deed from your past, or a turning; we'll place it together" and "An act I will do" — so upkeep and chapters don't wander into the entry flows.
 
 ### 12.4 Chapters: phases and steps (extends §5.3)
 
 `Chapter → phases → steps.` Phases are ordered `{name, target?, doneAt?}`; the first undone phase is *current*. Steps `{text, phaseId?, doneAt?}` live inside phases (visible only when a phase is tapped open) or loose under the chapter. **Every phase is drawn on the chapter line**: dated phases at their date (solid tick, brighter when done), undated ones spaced evenly by order between dated neighbours (dashed, fainter) until given a date. Phase name and target are editable inline.
+
+Drawing and interaction:
+
+- **Chapter names sit to the left of their lines**, before the begin tick, falling back above the line when the start is off-screen.
+- **Phase labels lay out collision-free across all lines**: measured widths, placement below → above → a lower row, faint leader lines tethering displaced labels to their date ticks; long names truncate with the full name in the tooltip; labels that fit nowhere are dropped (the tick remains).
+- **Lanes spread across the whole middle band** — wide apart (up to 44px) while chapters are few, a single chapter centred — and follow a **user-set draw order** (↑/↓ in the Chapters sheet; top of the list is drawn highest). Non-overlapping chapters still share lanes; overlapping ones never do.
+- An open chapter **with every phase done draws solid**, dotted projection gone; completing the last phase **auto-opens the shipping form**, led by "Every phase is done — the road is walked." An offer, not a wall — ignorable, with the quarterly review as the fallback.
 
 ### 12.5 Maintenance (amends §5.4)
 
@@ -281,3 +291,7 @@ Expectation-setting comes **before** the cold open. The word "qualify" still app
 ### 12.6 Mirror (amends §5.5)
 
 "Lines advanced" counts real advancement within the week: steps completed + phases marked done + chapters shipped or closed.
+
+### 12.7 Type and access
+
+All type — sheets and arc labels alike — is set in rem behind a Settings control (**Text size: Default / Large / Larger**, +15% / +30%) that scales the entire app from the root. Only text scales; layout and tap targets hold. Arc label base sizes favour readability over density.
