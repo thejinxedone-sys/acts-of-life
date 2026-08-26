@@ -418,12 +418,16 @@ function drawChapters(W, top, bot, ppd, nowX) {
     });
   }
   const { laneOf, count } = chapterLanes(chapters);
-  const laneH = Math.min(20, (bot - top) / count);
+  // Spread lanes across the whole band: wide apart while chapters are
+  // few, tightening only as they accumulate. A single chapter centres.
+  const bandH = bot - top;
+  const laneGap = count > 1 ? Math.min(44, (bandH - 16) / (count - 1)) : 0;
+  const y0 = count > 1 ? top + 8 : top + bandH / 2;
   const strokeW = ppd > 2 ? 2.4 : ppd > 0.3 ? 1.8 : 1.2;
 
   for (const c of chapters) {
     const lane = laneOf.get(c.id) || 0;
-    const y = top + 8 + lane * laneH;
+    const y = y0 + lane * laneGap;
     chapterYCache.set(c.id, y);
     const s = dateMs(c.startedAt);
     const x1 = xOf(s, W);
